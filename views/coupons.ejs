@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản lý hóa đơn</title>
+
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Tempusdominus Bootstrap 4 -->
+  <link rel="stylesheet" href="/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css">
+  <!-- iCheck -->
+  <link rel="stylesheet" href="/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+  <!-- JQVMap -->
+  <link rel="stylesheet" href="/plugins/jqvmap/jqvmap.min.css">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="/dist/css/adminlte.min.css">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
+  <!-- Daterange picker -->
+  <link rel="stylesheet" href="/plugins/daterangepicker/daterangepicker.css">
+  <!-- summernote -->
+  <link rel="stylesheet" href="/plugins/summernote/summernote-bs4.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    .badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .type-percentage {
+      background-color: #28a745; /* xanh lá */
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .type-fixed {
+      background-color: #007bff; /* xanh dương */
+      color: #fff;
+      font-weight: 600;
+    }
+
+
+    .type-cash {
+      background-color: #007bff;
+    }
+
+    .money {
+      font-weight: bold;
+      color: #343a40;
+    }
+
+    .status {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+      text-transform: capitalize;
+    }
+
+    .status-đang-hoạt-động {
+      background-color: #28a745;
+    }
+
+    .status-hết-hạn {
+      background-color: #dc3545;
+    }
+
+    .status-đã-ẩn {
+      background-color: #6c757d;
+    }
+
+    /* Tổng thể modal */
+    .swal2-popup {
+      font-family: Arial, sans-serif;
+    }
+  
+    /* Đặt màu nền cho các input và select */
+    .swal2-input, .swal2-select {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      background-color: #f9f9f9;
+      transition: border 0.3s ease, background-color 0.3s ease;
+    }
+  
+    .swal2-input:focus, .swal2-select:focus {
+      border-color: #4CAF50;  /* Màu xanh lá khi chọn */
+      background-color: #e8f5e9;
+    }
+  
+    /* Nút confirm và cancel */
+    .swal2-confirm, .swal2-cancel {
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  
+    .swal2-confirm {
+      background-color: #4CAF50;
+      color: white;
+    }
+  
+    .swal2-confirm:hover {
+      background-color: #45a049;
+    }
+  
+    .swal2-cancel {
+      background-color: #f44336;
+      color: white;
+    }
+  
+    .swal2-cancel:hover {
+      background-color: #e53935;
+    }
+  
+    /* Label cho các input */
+    .swal2-input + label {
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+    }
+  
+    /* Cải thiện cho các select dropdown */
+    .swal2-select {
+      height: 45px;
+    }
+  
+    /* Các input datetime */
+    .swal2-input[type="datetime-local"] {
+      padding: 10px;
+      height: 45px;
+    }
+  
+    /* Tạo khoảng cách cho các trường */
+    .swal2-popup input,
+    .swal2-popup select {
+      margin-top: 8px;
+    }
+  
+    /* Tạo không gian cho modal */
+    .swal2-content {
+      padding: 20px;
+    }
+  </style>  
+  <style>
+    .user-panel .info {
+      display: flex;
+      justify-content: center;
+      /* Canh giữa ngang */
+      align-items: center;
+      /* Canh giữa dọc */
+      height: 100%;
+      /* Đảm bảo phần tử con chiếm hết chiều cao */
+    }
+
+    .user-panel .admin-name {
+      font-size: 22px;
+      /* Tăng kích thước chữ */
+      font-weight: bold;
+      /* In đậm */
+      color: white;
+      /* Chữ màu trắng */
+    }
+
+    .dataTables_length select {
+      min-width: 70px;
+      /* Tăng chiều rộng tối thiểu */
+      padding: 10px;
+      /* Làm cho nó dễ bấm hơn */
+      text-align: center;
+      /* Căn giữa số */
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+
+  <!-- FontAwesome -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+  <div class="wrapper">
+
+    <!-- Preloader -->
+    <div class="preloader flex-column justify-content-center align-items-center">
+      <img class="animation__shake" src="/uploads/logo.png" alt="AdminLTELogo" height="60" width="60">
+    </div>
+
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+      <!-- Left navbar links -->
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+          <a href="/v1/dashboard/" class="nav-link">Trang chủ</a>
+        </li>
+        <li class="nav-item">
+          <a id="chat-tab-btn" href="/v1/dashboard/chat" class="nav-link">Phản Hồi</a>
+        </li>
+      </ul>
+
+      <!-- Right navbar links -->
+      <ul class="navbar-nav ml-auto">
+        <!-- Navbar Search -->
+        <li class="nav-item">
+          <a class="nav-link" data-widget="navbar-search" href="#" role="button">
+            <i class="fas fa-search"></i>
+          </a>
+          <div class="navbar-search-block">
+            <form class="form-inline">
+              <div class="input-group input-group-sm">
+                <input class="form-control form-control-navbar" type="search" placeholder="Search" aria-label="Search">
+                <div class="input-group-append">
+                  <button class="btn btn-navbar" type="submit">
+                    <i class="fas fa-search"></i>
+                  </button>
+                  <button class="btn btn-navbar" type="button" data-widget="navbar-search">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </li>
+ <!-- Notifications Dropdown Menu -->
+ <li id="nav-notif" class="nav-item dropdown">
+  <a
+    class="nav-link"
+    data-toggle="dropdown"
+    href="#"
+    aria-expanded="false"
+  >
+    <i class="far fa-bell"></i>
+    <span id="notif-badge" class="badge badge-warning navbar-badge"
+      >0</span
+    >
+  </a>
+  <div
+    id="notif-menu"
+    class="dropdown-menu dropdown-menu-lg dropdown-menu-right p-0"
+  >
+    <div class="px-3 py-2 border-bottom">
+      <strong id="notif-header">0 Notifications</strong>
+    </div>
+    <div
+      id="notif-items"
+      style="max-height: 300px; overflow-y: auto"
+    ></div>
+    <div class="dropdown-divider m-0"></div>
+    <a href="#" id="mark-all-read" class="dropdown-item text-center"
+      >Đánh dấu tất cả là đã đọc</a
+    >
+  </div>
+</li>
+       
+        <li class="nav-item">
+          <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+            <i class="fas fa-expand-arrows-alt"></i>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-widget="control-sidebar" data-controlsidebar-slide="true" href="#" role="button">
+            <i class="fas fa-th-large"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <!-- /.navbar -->
+
+    <!-- Main Sidebar Container -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+      <!-- Brand Logo -->
+      <a class="brand-link">
+        <img src="/uploads/logo.png" alt="Admin Logo" class="brand-image img-circle elevation-3 bg-white"
+          style="max-width: 150px;">
+        <span class="brand-text font-weight-light">Clothique</span>
+      </a>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+          <div class="info">
+            <div class="admin-name">Chủ Cửa Hàng</div>
+          </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+            <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+
+            <li class="nav-item menu-open">
+              <a href="#" class="nav-link active">
+                <i class="nav-icon fas fa-tachometer-alt"></i>
+                <p>
+                  Trung Tâm Điều Khiển
+                  <i class="right fas fa-angle-left"></i>
+                </p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="/v1/dashboard/products" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý sản phẩm</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/v1/dashboard/categories"
+                    class="nav-link <%= currentPath === '/categories' ? 'active' : '' %>">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý loại sản phẩm</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/v1/dashboard/orders" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý đơn hàng</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/v1/dashboard/transactions"
+                    class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý hóa đơn</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/v1/dashboard/coupons"
+                    class="nav-link <%= currentPath === '/coupons' ? 'active' : '' %>">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý mã giảm giá</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/v1/dashboard/users" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý người dùng</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/v1/dashboard/comment" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Quản lý bình luận</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link text-white">
+                <i class="nav-icon fas fa-user"></i>
+                <p>
+                  Tài Khoản
+                  <i class="right fas fa-angle-left"></i>
+                </p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="/v1/dashboard/logout" class="nav-link text-danger">
+                    <i class="nav-icon fas fa-sign-out-alt"></i>
+                    <p>Đăng xuất</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+        </nav>
+        <!-- /.sidebar-menu -->
+      </div>
+      <!-- /.sidebar -->
+    </aside>
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+      <!-- Content Header (Page header) -->
+      <div class="content-header">
+        <div class="container-fluid">
+          <div class="row mb-2">
+            <div class="col-sm-6">
+            </div><!-- /.col -->
+          </div><!-- /.row -->
+        </div><!-- /.container-fluid -->
+      </div>
+      <!-- /.content-header -->
+
+      <section class="content">
+        <div class="container-fluid">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title fw-bold text-purple fs-2" style="color: #6f42c1;">
+                <i class="fas fa-clipboard-list"></i>
+                Danh sách mã giảm giá
+              </h3>
+              <button id="openCouponModal" class="btn btn-primary">Thêm mã giảm giá</button>
+            </div>
+      
+            <div class="card-body table-responsive">
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <input type="text" id="filterCode" class="form-control" placeholder="Nhập mã giảm giá">
+                </div>
+                <div class="col-md-2">
+                  <select id="filterType" class="form-control">
+                    <option value="">Tất cả loại</option>
+                    <option value="percentage">Phần trăm</option>
+                    <option value="fixed">Số tiền</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <select id="filterStatus" class="form-control">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="expired">Hết hạn</option>
+                    <option value="hidden">Đã ẩn</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <select id="itemsPerPage" class="form-control">
+                    <option value="10">10 mã giảm giá</option>
+                    <option value="20">20 mã giảm giá</option>
+                    <option value="50">50 mã giảm giá</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <button class="btn btn-secondary" onclick="loadCoupons()">Lọc</button>
+                </div>
+              </div>              
+              <table class="table table-bordered table-hover text-center" id="couponTable">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Loại</th>
+                    <th>Giá trị</th>
+                    <th>Giảm tối đa</th>
+                    <th>Đơn tối thiểu</th>
+                    <th>Đã dùng/Tổng</th>
+                    <th>Mỗi người</th>
+                    <th>Thời gian</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody id="couponBody">
+                  <!-- Dữ liệu từ JS -->
+                </tbody>
+              </table>
+              <div class="mt-3 d-flex justify-content-center">
+                <div id="pagination"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- <div class="modal fade" id="couponModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <form id="addCouponForm">
+              <div class="modal-header">
+                <h5 class="modal-title">Thêm mã giảm giá</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+      
+              <div class="modal-body">
+                <div class="mb-2">
+                  <label>Mã code</label>
+                  <input type="text" name="code" class="form-control" required />
+                </div>
+                <div class="mb-2">
+                  <label>Loại giảm</label>
+                  <select name="discountType" class="form-control">
+                    <option value="percentage">Phần trăm</option>
+                    <option value="fixed">Số tiền</option>
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label>Giá trị giảm</label>
+                  <input type="number" name="discountValue" class="form-control" required />
+                </div>
+                <div class="mb-2">
+                  <label>Đơn tối thiểu</label>
+                  <input type="number" name="minOrderValue" class="form-control" />
+                </div>
+                <div class="mb-2">
+                  <label>Tổng lượt dùng</label>
+                  <input type="number" name="maxUses" class="form-control" />
+                </div>
+                <div class="mb-2">
+                  <label>Mỗi người dùng</label>
+                  <input type="number" name="maxUsesPerUser" class="form-control" />
+                </div>
+                <div class="mb-2">
+                  <label>Bắt đầu</label>
+                  <input type="datetime-local" name="validFrom" class="form-control" required />
+                </div>
+                <div class="mb-2">
+                  <label>Kết thúc</label>
+                  <input type="datetime-local" name="validUntil" class="form-control" required />
+                </div>
+              </div>
+      
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-success">Thêm</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div> -->
+      
+
+    </div>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+      <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- /.control-sidebar -->
+  </div>
+  <!-- jQuery -->
+  <script src="/plugins/jquery/jquery.min.js"></script>
+  <!-- jQuery UI 1.11.4 -->
+  <script src="/plugins/jquery-ui/jquery-ui.min.js"></script>
+  <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+  <script>
+    $.widget.bridge('uibutton', $.ui.button)
+  </script>
+  <!-- Bootstrap 4 -->
+  <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <!-- ChartJS -->
+  <script src="/plugins/chart.js/Chart.min.js"></script>
+  <!-- Sparkline -->
+  <script src="/plugins/sparklines/sparkline.js"></script>
+  <!-- JQVMap -->
+  <script src="/plugins/jqvmap/jquery.vmap.min.js"></script>
+  <script src="/plugins/jqvmap/maps/jquery.vmap.usa.js"></script>
+  <!-- jQuery Knob Chart -->
+  <script src="/plugins/jquery-knob/jquery.knob.min.js"></script>
+  <!-- daterangepicker -->
+  <script src="/plugins/moment/moment.min.js"></script>
+  <script src="/plugins/daterangepicker/daterangepicker.js"></script>
+  <!-- Tempusdominus Bootstrap 4 -->
+  <script src="/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js"></script>
+  <!-- Summernote -->
+  <script src="/plugins/summernote/summernote-bs4.min.js"></script>
+  <!-- overlayScrollbars -->
+  <script src="/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
+  <!-- AdminLTE App -->
+  <script src="/dist/js/adminlte.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    let currentPage = 1;
+    const pageLimit = 10;
+    async function loadCoupons(page = 1) {
+  try {
+    const type = document.getElementById('filterType')?.value;
+    const status = document.getElementById('filterStatus')?.value;
+    const code = document.getElementById('filterCode')?.value;
+    const itemsPerPage = document.getElementById('itemsPerPage')?.value || 10;  // Lấy giá trị limit từ dropdown
+    
+    const queryParams = new URLSearchParams({ page, limit: itemsPerPage });
+
+    if (type) queryParams.append('discountType', type);
+    if (status === 'active' || status === 'expired') {
+      queryParams.append('status', status);
+    } else if (status === 'hidden') {
+      queryParams.append('isHidden', 'true');
+    }
+    if (code) queryParams.append('code', code);
+
+    const res = await fetch('/v1/coupon?' + queryParams.toString());
+    const result = await res.json();
+
+    if (!res.ok) throw new Error(result.message || 'Không thể tải mã giảm giá');
+
+    const { coupons, totalPages } = result;
+    const body = document.getElementById('couponBody');
+    body.innerHTML = '';
+
+    coupons.forEach(coupon => {
+      const status = coupon.isHidden
+        ? 'Đã ẩn'
+        : new Date(coupon.validUntil) < new Date()
+          ? 'Hết hạn'
+          : 'Đang hoạt động';
+
+      const discountDisplay = coupon.discountType === 'percentage'
+        ? coupon.discountValue + '%'
+        : coupon.discountValue.toLocaleString('vi-VN') + 'đ';
+
+      const maxDiscountDisplay = coupon.discountType === 'percentage' && coupon.maxDiscountAmount
+        ? coupon.maxDiscountAmount.toLocaleString('vi-VN') + 'đ'
+        : '-';
+
+        body.innerHTML += `
+          <tr>
+            <td>${coupon.code}</td>
+            <td><span class="badge type-${coupon.discountType}">${coupon.discountType === 'percentage' ? 'Phần trăm' : 'Số tiền'}</span></td>
+            <td><span class="money">${discountDisplay}</span></td>
+            <td><span class="money">${maxDiscountDisplay}</span></td>
+            <td><span class="money">${coupon.minOrderValue.toLocaleString('vi-VN')}đ</span></td>
+            <td>${coupon.usedCount}/${coupon.maxUses}</td>
+            <td>${coupon.maxUsesPerUser}</td>
+            <td>${new Date(coupon.validFrom).toLocaleDateString()} - ${new Date(coupon.validUntil).toLocaleDateString()}</td>
+            <td><span class="status status-${status.replace(/\s/g, '-').toLowerCase()}">${status}</span></td>
+            <td>
+              <button
+                class="hide-btn"
+                onclick="toggleCoupon('${coupon._id}', ${coupon.isHidden})"
+                style="padding: 8px 12px; margin-right: 5px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; background-color: ${coupon.isHidden ? '#5cb85c' : '#d9534f'}; color: white;"
+              >
+                ${coupon.isHidden ? 'Hiện' : 'Ẩn'}
+              </button>
+              <button
+                class="edit-btn"
+                onclick="editCoupon('${coupon._id}')"
+                style="padding: 8px 12px; margin-right: 5px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; background-color: #007bff; color: white;"
+              >
+                Sửa
+              </button>
+              <button
+                class="users-btn"
+                onclick="viewUsers('${coupon._id}')"
+                style="padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; background-color: #f0ad4e; color: white;"
+              >
+                Người dùng
+              </button>
+            </td>
+          </tr>
+        `;
+    });
+
+    renderPagination(totalPages, page);
+
+  } catch (error) {
+    console.error('Lỗi tải mã giảm giá:', error);
+    Swal.fire('Lỗi', error.message, 'error');
+  }
+}
+
+
+function renderPagination(totalPages, currentPage) {
+  const container = document.getElementById("pagination");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const ul = document.createElement("ul");
+  ul.className = "pagination m-0";
+
+  const createPageItem = (label, page, disabled = false, active = false) => {
+    const li = document.createElement("li");
+    li.className = `page-item${active ? " active" : ""}${disabled ? " disabled" : ""}`;
+
+    const a = document.createElement("a");
+    a.className = "page-link";
+    a.href = "#";
+    a.textContent = label;
+    a.onclick = (e) => {
+      e.preventDefault();
+      if (!disabled && page !== currentPage) {
+        loadCoupons(page); // 👉 Gọi lại loadCoupons với số trang mới
+      }
+    };
+
+    li.appendChild(a);
+    return li;
+  };
+
+  if (currentPage > 1) {
+    ul.appendChild(createPageItem("«", 1));
+  }
+
+  let startPage = Math.max(1, currentPage - 1);
+  let endPage = Math.min(totalPages, currentPage + 1);
+  if (currentPage === 1) endPage = Math.min(3, totalPages);
+  if (currentPage === totalPages) startPage = Math.max(1, totalPages - 2);
+
+  for (let i = startPage; i <= endPage; i++) {
+    ul.appendChild(createPageItem(i, i, false, i === currentPage));
+  }
+
+  if (currentPage < totalPages) {
+    ul.appendChild(createPageItem("»", totalPages));
+  }
+
+  container.appendChild(ul);
+}
+
+
+
+
+  
+    loadCoupons();
+  
+    document.getElementById("openCouponModal").addEventListener("click", () => {
+      Swal.fire({
+        title: 'Thêm mã giảm giá',
+        html: `
+          <input type="text" id="code" class="swal2-input" placeholder="Mã code">
+          <select id="discountType" class="swal2-select" onchange="toggleMaxDiscountAmount()">
+            <option value="percentage">Phần trăm</option>
+            <option value="fixed">Số tiền</option>
+          </select>
+          <input type="number" id="discountValue" class="swal2-input" placeholder="Giá trị giảm">
+  
+          <div id="maxDiscountContainer" style="display:none;">
+            <input type="number" id="maxDiscountAmount" class="swal2-input" placeholder="Giảm tối đa (VNĐ)">
+          </div>
+  
+          <input type="number" id="minOrderValue" class="swal2-input" placeholder="Đơn tối thiểu">
+          <input type="number" id="maxUses" class="swal2-input" placeholder="Tổng lượt dùng">
+          <input type="number" id="maxUsesPerUser" class="swal2-input" placeholder="Mỗi người dùng">
+  
+          <label style="display:block;text-align:left;margin:5px 0 2px 5px">Bắt đầu</label>
+          <input type="datetime-local" id="validFrom" class="swal2-input">
+          <label style="display:block;text-align:left;margin:5px 0 2px 5px">Kết thúc</label>
+          <input type="datetime-local" id="validUntil" class="swal2-input">
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Thêm',
+        cancelButtonText: 'Huỷ',
+        focusConfirm: false,
+        didOpen: () => {
+          toggleMaxDiscountAmount(); // Đảm bảo hiển thị đúng nếu reload
+        },
+        preConfirm: () => {
+          const code = document.getElementById('code').value;
+          const discountType = document.getElementById('discountType').value;
+          const discountValue = parseFloat(document.getElementById('discountValue').value);
+          const maxDiscountAmount = parseFloat(document.getElementById('maxDiscountAmount')?.value) || 0;
+          const minOrderValue = parseFloat(document.getElementById('minOrderValue').value);
+          const maxUses = parseInt(document.getElementById('maxUses').value);
+          const maxUsesPerUser = parseInt(document.getElementById('maxUsesPerUser').value);
+          const validFrom = document.getElementById('validFrom').value;
+          const validUntil = document.getElementById('validUntil').value;
+  
+          if (!code || isNaN(discountValue)) {
+            Swal.showValidationMessage('Mã code và Giá trị giảm là bắt buộc');
+            return false;
+          }
+  
+          const data = {
+            code,
+            discountType,
+            discountValue,
+            minOrderValue,
+            maxUses,
+            maxUsesPerUser,
+            validFrom,
+            validUntil,
+          };
+  
+          if (discountType === 'percentage') {
+            data.maxDiscountAmount = maxDiscountAmount;
+          }
+  
+          return data;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const data = result.value;
+  
+          fetch('/v1/coupon/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          })
+          .then(async res => {
+            if (res.ok) {
+              Swal.fire('Thành công!', 'Mã giảm giá đã được thêm.', 'success');
+              loadCoupons();
+            } else {
+              const errorData = await res.json();
+              const errorMessage = errorData.message || 'Không thể thêm mã giảm giá';
+              Swal.fire('Lỗi', errorMessage, 'error');
+            }
+          })
+          .catch(err => {
+            console.error('Lỗi gửi yêu cầu:', err);
+            Swal.fire('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+          });
+        }
+      });
+    });
+  
+    function toggleMaxDiscountAmount() {
+      const discountType = document.getElementById("discountType").value;
+      const container = document.getElementById("maxDiscountContainer");
+      if (discountType === "percentage") {
+        container.style.display = "block";
+      } else {
+        container.style.display = "none";
+      }
+    }
+
+    async function toggleCoupon(id, isHidden) {
+      try {
+        const res = await fetch(`/v1/coupon/hideCoupon/${id}`, { method: 'POST' });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message);
+        Swal.fire('Thành công', result.message, 'success');
+        loadCoupons();
+      } catch (err) {
+        Swal.fire('Lỗi', err.message, 'error');
+      }
+    }
+
+    async function editCoupon(id) {
+  try {
+    const res = await fetch(`/v1/coupon/${id}`);
+    const coupon = await res.json();
+
+    if (coupon.usedCount > 0) {
+      return Swal.fire('Không thể sửa', 'Mã này đã có người sử dụng!', 'warning');
+    }
+
+    const { value: formValues } = await Swal.fire({
+      title: 'Cập nhật mã giảm giá',
+      html: `
+        <input type="text" id="code" class="swal2-input" placeholder="Mã code" value="${coupon.code}">
+        <select id="discountType" class="swal2-select" onchange="toggleMaxDiscountAmount()">
+          <option value="percentage" ${coupon.discountType === "percentage" ? "selected" : ""}>Phần trăm</option>
+          <option value="fixed" ${coupon.discountType === "fixed" ? "selected" : ""}>Số tiền</option>
+        </select>
+        <input type="number" id="discountValue" class="swal2-input" placeholder="Giá trị giảm" value="${coupon.discountValue}">
+
+        <div id="maxDiscountContainer" style="display:${coupon.discountType === 'fixed' ? 'block' : 'none'};">
+          <input type="number" id="maxDiscountAmount" class="swal2-input" placeholder="Giảm tối đa (VNĐ)" value="${coupon.maxDiscountAmount || ''}">
+        </div>
+
+        <input type="number" id="minOrderValue" class="swal2-input" placeholder="Đơn tối thiểu" value="${coupon.minOrderValue}">
+        <input type="number" id="maxUses" class="swal2-input" placeholder="Tổng lượt dùng" value="${coupon.maxUses}">
+        <input type="number" id="maxUsesPerUser" class="swal2-input" placeholder="Mỗi người dùng" value="${coupon.maxUsesPerUser}">
+
+        <label style="display:block;text-align:left;margin:5px 0 2px 5px">Bắt đầu</label>
+        <input type="datetime-local" id="validFrom" class="swal2-input" value="${coupon.validFrom ? new Date(coupon.validFrom).toISOString().slice(0, 16) : ''}">
+        <label style="display:block;text-align:left;margin:5px 0 2px 5px">Kết thúc</label>
+        <input type="datetime-local" id="validUntil" class="swal2-input" value="${coupon.validUntil ? new Date(coupon.validUntil).toISOString().slice(0, 16) : ''}">
+      `,
+      focusConfirm: false,
+      didOpen: () => {
+        toggleMaxDiscountAmount(); // Gọi hàm sau khi modal đã mở
+      },
+      preConfirm: () => {
+        return {
+          code: document.getElementById('code').value,
+          discountType: document.getElementById('discountType').value,
+          discountValue: +document.getElementById('discountValue').value,
+          maxDiscountAmount: +document.getElementById('maxDiscountAmount').value,
+          minOrderValue: +document.getElementById('minOrderValue').value,
+          maxUses: +document.getElementById('maxUses').value,
+          maxUsesPerUser: +document.getElementById('maxUsesPerUser').value,
+          validFrom: document.getElementById('validFrom').value,
+          validUntil: document.getElementById('validUntil').value,
+        };
+      }
+    });
+
+    if (!formValues) return;
+
+    const resUpdate = await fetch(`/v1/coupon/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formValues)
+    });
+
+    const result = await resUpdate.json();
+    if (!resUpdate.ok) return Swal.fire('Lỗi', result.message, 'error');
+
+    Swal.fire('Thành công', 'Đã cập nhật mã giảm giá', 'success');
+    loadCoupons();
+
+  } catch (err) {
+    Swal.fire('Lỗi', err.message, 'error');
+  }
+}
+
+
+
+
+
+    async function viewUsers(id) {
+      try {
+        const res = await fetch(`/v1/coupon/getUsersUsed/${id}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.message || 'Có lỗi xảy ra');
+
+        // Nếu không có người dùng nào
+        if (data.users.length === 0) {
+          Swal.fire({
+            title: 'Người dùng đã sử dụng mã',
+            text: 'Chưa có ai sử dụng mã giảm giá này.',
+            confirmButtonText: 'Đóng'
+          });
+          return;
+        }
+
+        // Hiển thị danh sách người dùng đã sử dụng coupon
+        const html = data.users.map(u => `<li>${u.name} (${u.email})</li>`).join('');
+        Swal.fire({
+          title: 'Người dùng đã sử dụng mã',
+          html: `<ul style="text-align:left">${html}</ul>`,
+          confirmButtonText: 'Đóng'
+        });
+      } catch (err) {
+        Swal.fire('Lỗi', err.message, 'error');
+      }
+    }
+  </script>
+   <script>
+    const socket = io();
+    const adminId = "admin";
+    const adminUsername = "Admin";
+
+    let selectedUser = null;
+    let messages = {};
+    let unreadUsers = {};
+    let notifications = [];
+
+    const chatUserList = document.getElementById("chat-user-list");
+    const chatTitle = document.getElementById("chat-title");
+    const chatContainer = document.getElementById("chat");
+    const messageInput = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-btn");
+    const notificationBadge = document.getElementById("notif-badge");
+    const notifHeader = document.getElementById("notif-header");
+    const notifItems = document.getElementById("notif-items");
+    const markAllBtn = document.getElementById("mark-all-read");
+
+    // --- LocalStorage helpers ---
+    function getReadIds() {
+      return JSON.parse(localStorage.getItem("readNotifications") || "[]");
+    }
+    function addReadId(id) {
+      const arr = getReadIds();
+      if (!arr.includes(id)) {
+        arr.push(id);
+        localStorage.setItem("readNotifications", JSON.stringify(arr));
+      }
+    }
+
+    // --- Socket registration ---
+    socket.emit("register", {
+      userId: adminId,
+      username: adminUsername,
+      isAuthenticated: true,
+    });
+ // Khi có thông báo mới từ server (qua socket)
+      socket.on("newNotification", (notification) => {
+        // Kiểm tra trùng (ví dụ kiểm tra userId và timestamp)
+        const exists = notifications.some(
+          (n) =>
+            n.userId === notification.userId &&
+            new Date(n.timestamp).toISOString() ===
+              new Date(notification.timestamp).toISOString()
+        );
+        if (!exists) {
+          notifications.unshift(notification);
+          updateBadge(); // cập nhật số lượng
+          renderDropdown(); // cập nhật giao diện dropdown
+        }
+      });
+    // --- Load & render notifications from server + localStorage flags ---
+    async function loadNotifications() {
+      const resp = await fetch("/v1/notifications");
+      const notes = await resp.json();
+      // sử dụng đúng flag read từ server
+      notifications = notes.map(n => ({
+  _id:       n._id,
+  userId:    n.userId,
+  username:  n.username,
+  timestamp: new Date(n.createdAt).toLocaleString("vi-VN"),
+  read:      n.read
+}));
+      updateBadgeAndHeader()
+      renderNotificationDropdown();
+    }
+    loadNotifications();
+    // thêm notification mới: POST trước, rồi unshift kết quả
+    async function addNotification(n) {
+      try {
+        const resp = await fetch("/v1/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: n.userId,
+            username: n.username,
+            title: "Tin nhắn mới",
+            message: "Bạn có tin nhắn mới từ " + n.username,
+            read: false,
+          }),
+        });
+        const saved = await resp.json();
+        // giờ mới thêm vào mảng
+        notifications.unshift({
+          _id: saved._id,
+          userId: saved.userId,
+          username: saved.username,
+          timestamp: new Date(saved.createdAt).toLocaleString("vi-VN"),
+          read: saved.read,
+        });
+        renderNotificationDropdown();
+      } catch (err) {
+        console.error("Failed to save notification:", err);
+      }
+    }
+
+    // --- Cập nhật badge và header ---
+    function updateBadgeAndHeader() {
+      const unread = notifications.filter((n) => !n.read).length;
+      notificationBadge.innerText = unread > 0 ? unread : "";
+      notifHeader.innerText = `${unread} Notifications`;
+    }
+
+    // render và gán click
+    function renderNotificationDropdown() {
+      const unread = notifications.filter((n) => !n.read).length;
+      notificationBadge.innerText = unread > 0 ? unread : "";
+      notifHeader.innerText = `${unread} Notifications`;
+      notifItems.innerHTML = notifications
+        .map(
+          (n, i) => `
+  <a href="#" class="dropdown-item ${n.read ? "" : "bg-light"}"
+     data-index="${i}"
+     data-id="${n._id}"
+     data-user-id="${n.userId}"
+     data-username="${n.username}">
+    <i class="fas fa-envelope mr-2"></i>
+    <strong>${n.username}</strong> đã gửi tin nhắn mới
+    <span class="float-right text-muted text-sm">${n.timestamp}</span>
+  </a>
+  <div class="dropdown-divider"></div>
+`
+        )
+        .join("");
+
+      notifItems.querySelectorAll("a.dropdown-item").forEach((el) => {
+        el.onclick = async (e) => {
+          e.preventDefault();
+          const idx = +el.dataset.index;
+          const note = notifications[idx];
+          const notifId = el.dataset.id;
+          const userId = el.dataset.userId;
+          const username = el.dataset.username;
+
+          if (!note.read) {
+            // đánh dấu trên server
+            await fetch(`/v1/notifications/${notifId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ read: true }),
+            });
+            // cập nhật local
+            note.read = true;
+          }
+
+          // chuyển sang chat
+          document
+            .getElementById("chat-tab-btn")
+            .addEventListener("click", () => {
+              // 1) local update ngay lập tức
+              notifications.forEach((n) => (n.read = true));
+
+              // 2) cập nhật badge + dropdown
+              updateBadgeAndHeader();
+              renderNotificationDropdown();
+
+              // 3) sync lên server (PATCH) nhưng không block UI
+              notifications
+                .filter((n) => n._id) // chỉ những đã có _id
+                .forEach((n) => {
+                  fetch(`/v1/notifications/${n._id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ read: true }),
+                  }).catch(console.error);
+                });
+            });
+          document.getElementById("chat-tab-btn").click();
+          selectUser(userId, username);
+          selectUser(userId, username);
+          renderNotificationDropdown();
+        };
+      });
+    }
+    // --- Chat user list & selection ---
+    socket.on("updateUserList", (users) => {
+      chatUserList.innerHTML = "<h3 class='mt-2'>User List</h3>";
+      users
+        .filter((u) => u.userId !== adminId)
+        .forEach((u) => {
+          const div = document.createElement("div");
+          div.classList.add("user-item");
+          div.dataset.id = u.userId;
+          if (unreadUsers[u.userId]) div.classList.add("new-message");
+          div.innerHTML = `<div class="user-info">${u.username}</div><button class="hide-btn">Ẩn</button>`;
+          div.querySelector(".user-info").onclick = () =>
+            selectUser(u.userId, u.username);
+          div.querySelector(".hide-btn").onclick = () => {
+            socket.emit("hideChatWithUser", u.userId);
+            div.remove();
+          };
+          chatUserList.appendChild(div);
+        });
+    });
+
+    async function markRead(idx) {
+      try {
+        const res = await fetch("/v1/notifications/markAsRead", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: notifications[idx]._id }),
+        });
+        if (!res.ok) throw new Error("Mark failed");
+        const updated = await res.json();
+        // SỬA: lấy luôn trạng thái read từ server để đồng nhất
+        notifications[idx].read = !!(updated.read ?? updated.isRead);
+      } catch (e) {
+        console.error("❌ markRead:", e);
+        // nếu lỗi, vẫn giữ client-side là đã đọc để khỏi nhảy badge
+        notifications[idx].read = true;
+      }
+      await loadNotifications(); // đảm bảo đồng bộ dữ liệu
+    }
+
+    markAllBtn.onclick = async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch("/v1/notifications/mark-all-read", {
+          method: "PUT",
+        });
+        if (!res.ok) throw new Error("Mark all failed");
+        notifications.forEach((n) => (n.read = true));
+        updateBadgeAndHeader();
+        renderNotificationDropdown();
+      } catch (e) {
+        console.error("❌ mark-all-read:", e);
+      }
+    };
+    function renderDropdown() {
+      const unreadCount = notifications.filter((n) => !n.read).length;
+      notifHeader.innerText = `${unreadCount} Notifications`;
+      notifItems.innerHTML = notifications
+        .map(
+          (n, i) => `
+    <a href="#" class="dropdown-item ${
+      n.read ? "" : "bg-light"
+    }" data-idx="${i}">
+      <i class="fas fa-${
+        n.type === "message"
+          ? "envelope"
+          : n.type === "comment"
+          ? "comment"
+          : "box"
+      } mr-2"></i>
+      <strong>${n.username}</strong> ${n.message}
+      <span class="float-right text-muted text-sm">
+        ${new Date(n.timestamp).toLocaleTimeString()}
+      </span>
+    </a>
+    <div class="dropdown-divider"></div>
+  `
+        )
+        .join("");
+
+      notifItems.querySelectorAll("a.dropdown-item").forEach((el) => {
+        el.onclick = async (e) => {
+          e.preventDefault();
+          const idx = +el.dataset.idx;
+          if (!notifications[idx].read) {
+            // gọi API để đánh dấu là đã đọc
+            await markRead(idx);
+            // và load lại để đảm bảo dữ liệu đồng bộ
+            await loadNotifications();
+          }
+          const n = notifications[idx];
+          selectUser(n.userId, n.username);
+        };
+      });
+    }
+
+    async function selectUser(id, name) {
+      selectedUser = id;
+      chatTitle.innerText = `Chat với ${name}`;
+      chatContainer.innerHTML = "";
+      delete unreadUsers[id];
+
+      // Bỏ highlight new-message
+      document
+        .querySelector(`[data-id="${id}"]`)
+        ?.classList.remove("new-message");
+
+      // *** đánh dấu read ngay khi click user
+      await markNotificationsReadForUser(id);
+
+      // Hiển thị history nếu đã load
+      if (messages[id]) renderMessages(id);
+      // rồi fetch thêm nếu cần
+      socket.emit("getMessages", id);
+    }
+
+    socket.on("chatHistory", ({ userId, messages: hist }) => {
+      messages[userId] = hist;
+      if (userId === selectedUser) renderMessages(userId);
+    });
+
+    async function markNotificationsReadForUser(userId) {
+      // Lấy ra danh sách cần mark
+      const toMark = notifications.filter(
+        (n) => n.userId === userId && !n.read && n._id
+      );
+      if (toMark.length === 0) return;
+
+      // -- 1) Optimistic update trên client --
+      toMark.forEach((n) => (n.read = true));
+      updateBadgeAndHeader();
+      renderNotificationDropdown();
+
+      // -- 2) Gửi PATCH song song để sync server --
+      try {
+        await Promise.all(
+          toMark.map((n) =>
+            fetch(`/v1/notifications/${n._id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ read: true }),
+            })
+          )
+        );
+      } catch (err) {
+        console.error("Failed to patch notifications:", err);
+      }
+    }
+
+    socket.on("receivePrivateMessage", (data) => {
+      const senderId = data.sender;
+      const senderName =
+        senderId === adminId ? adminUsername : data.senderName;
+      const chatPartner = senderId === adminId ? selectedUser : senderId;
+
+      messages[chatPartner] = messages[chatPartner] || [];
+      messages[chatPartner].push({
+        senderName,
+        message: data.message,
+        timestamp: Date.now(),
+      });
+
+      if (selectedUser === chatPartner) {
+        displayMessage(senderName, data.message);
+      } else {
+        unreadUsers[chatPartner] = true;
+        document
+          .querySelector(`[data-id="${chatPartner}"]`)
+          ?.classList.add("new-message");
+        // thêm notification
+        addNotification({
+          userId: senderId,
+          username: senderName,
+          timestamp: new Date().toLocaleString("vi-VN"),
+        });
+      }
+    });
+
+    // --- Thêm notification mới cả front+API ---
+    async function addNotification(n) {
+      const local = { ...n, read: false, _id: null };
+      notifications.unshift(local);
+      updateBadgeAndHeader();
+      renderNotificationDropdown();
+
+      try {
+        const resp = await fetch("/v1/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: n.userId,
+            username: n.username,
+            title: "Tin nhắn mới",
+            message: "Bạn có tin nhắn mới từ " + n.username,
+            read: false,
+          }),
+        });
+        const saved = await resp.json();
+        local._id = saved._id;
+      } catch (err) {
+        console.error("Failed to save notification:", err);
+      }
+    }
+
+    // --- gửi tin nhắn từ admin ---
+    sendButton.onclick = sendMessage;
+    function sendMessage() {
+      if (!selectedUser) return alert("Chọn một user để nhắn tin!");
+      const msg = messageInput.value.trim();
+      if (!msg) return;
+      socket.emit("sendPrivateMessage", {
+        sender: adminId,
+        receiver: selectedUser,
+        message: msg,
+      });
+      messages[selectedUser].push({
+        senderName: adminUsername,
+        message: msg,
+        timestamp: Date.now(),
+      });
+      displayMessage(adminUsername, msg);
+      messageInput.value = "";
+    }
+
+    function displayMessage(senderName, message) {
+      const d = document.createElement("div");
+      d.classList.add("message");
+      d.innerHTML = `<strong>${senderName}:</strong> ${message}`;
+      chatContainer.appendChild(d);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    function renderMessages(uid) {
+      chatContainer.innerHTML = "";
+      messages[uid].forEach((m) => displayMessage(m.senderName, m.message));
+    }
+
+    // toggle dropdown
+    document
+      .querySelector("#nav-notif .nav-link")
+      .addEventListener("click", (e) => {
+        e.preventDefault();
+        const menu = document.querySelector("#notif-menu");
+        menu.style.display =
+          menu.style.display === "block" ? "none" : "block";
+      });
+
+    // initial load
+    loadNotifications();
+  </script>
+     <script src="/socket.io/socket.io.js"></script>
+     <script>
+       window.__ADMIN_ID__ = "<%= adminId %>";
+       window.__ADMIN_NAME__ = "<%= adminName %>";
+     </script>
+     <script src="../public/global-notification.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,23 @@
+<!-- public/socket-client.html -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // 1 channel để gửi lên các page
+  const bc = new BroadcastChannel('socket-events');
+  const socket = io();
+
+  // ngay khi connect, emit register (lưu token, userId…)
+  socket.on('connect', () => {
+    const me = JSON.parse(localStorage.getItem('me') || '{}');
+    socket.emit('register', {
+      userId: me.userId,
+      username: me.username,
+      fcmToken: me.fcmToken,
+    });
+  });
+
+  // mỗi khi có notification, đẩy qua BroadcastChannel
+  socket.on('notification', (data) => {
+    bc.postMessage({ type: 'notification', data });
+  });
+  // xử lý các event khác tương tự…
+</script>

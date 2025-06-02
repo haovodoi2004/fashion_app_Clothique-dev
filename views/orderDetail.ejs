@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chi tiết đơn hàng</title>
+
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Tempusdominus Bootstrap 4 -->
+  <link rel="stylesheet" href="/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css">
+  <!-- iCheck -->
+  <link rel="stylesheet" href="/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+  <!-- JQVMap -->
+  <link rel="stylesheet" href="/plugins/jqvmap/jqvmap.min.css">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="/dist/css/adminlte.min.css">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
+  <!-- Daterange picker -->
+  <link rel="stylesheet" href="/plugins/daterangepicker/daterangepicker.css">
+  <!-- summernote -->
+  <link rel="stylesheet" href="/plugins/summernote/summernote-bs4.min.css">
+  <style>
+.badge {
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: white;
+  display: inline-block;
+}
+.status-Pending      { background-color: orange; }
+.status-Processing   { background-color: dodgerblue; }
+.status-Shipped      { background-color: mediumorchid; }
+.status-Delivered    { background-color: mediumseagreen; }
+.status-Cancelled    { background-color: crimson; }
+.status-Paid         { background-color: goldenrod; }
+.status-Refunded     { background-color: lightcoral; }
+.status-Completed    { background-color: #007bff; }
+
+  </style>
+  
+  <style>
+            .user-panel .info {
+      display: flex;
+      justify-content: center; /* Canh giữa ngang */
+      align-items: center; /* Canh giữa dọc */
+      height: 100%; /* Đảm bảo phần tử con chiếm hết chiều cao */
+    }
+
+    .user-panel .admin-name {
+      font-size: 22px; /* Tăng kích thước chữ */
+      font-weight: bold; /* In đậm */
+      color: white; /* Chữ màu trắng */
+    }
+    body {
+      background-color: #f4f6f9;
+    }
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .btn {
+      border-radius: 5px;
+    }
+
+    /* Modal nền tối */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Ảnh lớn trong modal */
+    .modal-content {
+      max-width: 80%;
+      max-height: 80%;
+      border-radius: 10px;
+    }
+
+    /* Nút đóng */
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 30px;
+      font-size: 30px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .variant-thumbnail {
+      width: 60px; /* Ảnh nhỏ */
+      height: 60px;
+      object-fit: cover;
+      margin-right: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .variant-thumbnail:hover {
+      transform: scale(1.1);
+    }
+
+
+  </style>
+    <style>
+      body {
+        background-color: #f4f4f4;
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        max-width: 900px;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      .variant-card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s;
+      }
+      .variant-card:hover {
+        transform: translateY(-5px);
+      }
+      .variant-thumbnail {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-right: 10px;
+        border: 2px solid #ddd;
+      }
+    </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+  
+  <!-- FontAwesome -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+  <!-- Preloader -->
+  <div class="preloader flex-column justify-content-center align-items-center">
+    <img class="animation__shake" src="/uploads/logo.png" alt="AdminLTELogo" height="60" width="60">
+  </div>
+
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <a href="/v1/dashboard/" class="nav-link">Trang chủ</a>
+      </li>
+      <li class="nav-item">
+        <a href="/v1/dashboard/chat" class="nav-link">Phản Hồi</a>
+      </li>
+    </ul>
+
+    <!-- Right navbar links -->
+    <ul class="navbar-nav ml-auto">
+      <!-- Navbar Search -->
+      <li class="nav-item">
+        <a class="nav-link" data-widget="navbar-search" href="#" role="button">
+          <i class="fas fa-search"></i>
+        </a>
+        <div class="navbar-search-block">
+          <form class="form-inline">
+            <div class="input-group input-group-sm">
+              <input class="form-control form-control-navbar" type="search" placeholder="Search" aria-label="Search">
+              <div class="input-group-append">
+                <button class="btn btn-navbar" type="submit">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button class="btn btn-navbar" type="button" data-widget="navbar-search">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </li>
+
+      <!-- Messages Dropdown Menu -->
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <i class="far fa-comments"></i>
+          <span class="badge badge-danger navbar-badge">3</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+          <a href="#" class="dropdown-item">
+            <!-- Message Start -->
+            <div class="media">
+              <img src="dist/img/user1-128x128.jpg" alt="User Avatar" class="img-size-50 mr-3 img-circle">
+              <div class="media-body">
+                <h3 class="dropdown-item-title">
+                  Brad Diesel
+                  <span class="float-right text-sm text-danger"><i class="fas fa-star"></i></span>
+                </h3>
+                <p class="text-sm">Call me whenever you can...</p>
+                <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> 4 Hours Ago</p>
+              </div>
+            </div>
+            <!-- Message End -->
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <!-- Message Start -->
+            <div class="media">
+              <img src="dist/img/user8-128x128.jpg" alt="User Avatar" class="img-size-50 img-circle mr-3">
+              <div class="media-body">
+                <h3 class="dropdown-item-title">
+                  John Pierce
+                  <span class="float-right text-sm text-muted"><i class="fas fa-star"></i></span>
+                </h3>
+                <p class="text-sm">I got your message bro</p>
+                <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> 4 Hours Ago</p>
+              </div>
+            </div>
+            <!-- Message End -->
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <!-- Message Start -->
+            <div class="media">
+              <img src="dist/img/user3-128x128.jpg" alt="User Avatar" class="img-size-50 img-circle mr-3">
+              <div class="media-body">
+                <h3 class="dropdown-item-title">
+                  Nora Silvester
+                  <span class="float-right text-sm text-warning"><i class="fas fa-star"></i></span>
+                </h3>
+                <p class="text-sm">The subject goes here</p>
+                <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> 4 Hours Ago</p>
+              </div>
+            </div>
+            <!-- Message End -->
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-footer">See All Messages</a>
+        </div>
+      </li>
+      <!-- Notifications Dropdown Menu -->
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <i class="far fa-bell"></i>
+          <span class="badge badge-warning navbar-badge">15</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+          <span class="dropdown-item dropdown-header">15 Notifications</span>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-envelope mr-2"></i> 4 new messages
+            <span class="float-right text-muted text-sm">3 mins</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-users mr-2"></i> 8 friend requests
+            <span class="float-right text-muted text-sm">12 hours</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-file mr-2"></i> 3 new reports
+            <span class="float-right text-muted text-sm">2 days</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+          <i class="fas fa-expand-arrows-alt"></i>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-widget="control-sidebar" data-controlsidebar-slide="true" href="#" role="button">
+          <i class="fas fa-th-large"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <!-- /.navbar -->
+
+  <!-- Main Sidebar Container -->
+  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a class="brand-link">
+      <img src="/uploads/logo.png" alt="Admin Logo" class="brand-image img-circle elevation-3 bg-white" style="max-width: 150px;">
+      <span class="brand-text font-weight-light">Clothique</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Sidebar user panel (optional) -->
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="info">
+          <div class="admin-name">Chủ Cửa Hàng</div>
+        </div>
+      </div>
+
+      <!-- Sidebar Menu -->
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+
+          <li class="nav-item menu-open">
+            <a href="#" class="nav-link active">
+              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <p>
+                Trung Tâm Điều Khiển
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="/v1/dashboard/products" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý sản phẩm</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/v1/dashboard/categories" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý loại sản phẩm</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/v1/dashboard/orders" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý đơn hàng</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/v1/dashboard/transactions" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý hóa đơn</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/v1/dashboard/coupons"
+                  class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý mã giảm giá</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/v1/dashboard/users" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý người dùng</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/v1/dashboard/comment" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Quản lý bình luận</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link text-white">
+              <i class="nav-icon fas fa-user"></i>
+              <p>
+                Tài Khoản
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="/v1/dashboard/logout" class="nav-link text-danger">
+                  <i class="nav-icon fas fa-sign-out-alt"></i>
+                  <p>Đăng xuất</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+      </nav>
+      <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+  </aside>
+
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-12">
+            <h2 class="mb-3 text-center text-primary">Chi Tiết Đơn Hàng</h2>
+            <div class="card p-4 shadow-sm">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                      <p><strong>ID Đơn Hàng:</strong> <%= order._id %></p>
+                      <p><strong>Khách hàng:</strong> <%= order.shippingAddress.name %></p>
+                      <p><strong>Số điện thoại:</strong> <%= order.shippingAddress.phoneNumber %></p>
+                      <p><strong>Địa chỉ giao hàng:</strong> <%= order.shippingAddress.addressDetail %></p>
+                      <%
+                      const deliveryDate = order.expectedDeliveryTime
+                          ? new Date(order.expectedDeliveryTime * 1000)
+                          : null;
+                      %>
+              
+                      <p><strong>Thời gian giao hàng dự kiến:</strong>
+                          <%= deliveryDate
+                              ? deliveryDate.toLocaleDateString('vi-VN', {
+                                  weekday: 'long',
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                              })
+                              : "Chưa có"
+                          %>
+                      </p>
+                  </div>
+                  <div class="col-md-6">
+                      <p>
+                          <strong>Phương Thức Thanh Toán:</strong>
+                          <span
+                              class="badge"
+                              style="background-color: <%= order.paymentMethod === 'MoMo' ? '#e91e63' : '#4CAF50' %>;
+                                              color: #ffffff;
+                                              padding: 5px 5px;
+                                              border-radius: 5px;">
+                              <%= order.paymentMethod %>
+                          </span>
+                      </p>
+                      <p><strong>Trạng thái thanh toán:</strong>
+                          <% if (order.paymentStatus === "Pending") { %>
+                              <span class="badge badge-warning">Chưa thanh toán</span>
+                          <% } else if (order.paymentStatus === "Paid") { %>
+                              <span class="badge badge-success">Đã thanh toán</span>
+                          <% } else if (order.paymentStatus === "Refunded") { %>
+                              <span class="badge badge-danger">Đã hoàn tiền</span>
+                          <% } else if (order.paymentStatus === "Cancelled") { %>
+                              <span class="badge badge-secondary">Đã hủy</span>
+                          <% } else { %>
+                              <span class="badge badge-secondary">Không xác định</span>
+                          <% } %>
+                      </p>
+              
+                      <p><strong>Trạng thái đơn hàng:</strong>
+                          <% if (order.orderStatus === "Pending") { %>
+                              <span class="badge status-Pending">Chờ lấy hàng</span>
+                          <% } else if (order.orderStatus === "Processing") { %>
+                              <span class="badge status-Processing">Đang xử lý</span>
+                          <% } else if (order.orderStatus === "Shipped") { %>
+                              <span class="badge status-Shipped">Đang giao hàng</span>
+                          <% } else if (order.orderStatus === "Delivered") { %>
+                              <span class="badge status-Delivered">Đã giao hàng</span>
+                          <% } else if (order.orderStatus === "Completed") { %>
+                              <span class="badge status-Completed">Đã nhận hàng</span>
+                          <% } else if (order.orderStatus === "Cancelled") { %>
+                              <span class="badge status-Cancelled">Đã hủy</span>
+                          <% } else { %>
+                              <span class="badge status-Refunded">Không xác định</span>
+                          <% } %>
+                      </p>
+              
+                      <p><strong>Phí vận chuyển:</strong>
+                          <%= Number(order.shippingFee).toLocaleString("vi-VN") %>đ
+                      </p>
+                      <p><strong>Giảm giá:</strong>
+                          <%= Number(order.discountAmount).toLocaleString("vi-VN") %>đ
+                      </p>
+                      <p><strong>Tổng tiền:</strong>
+                          <%= Number(order.totalAmount).toLocaleString("vi-VN") %>đ
+                      </p>
+                  </div>
+              </div>         
+              </div>
+            </div>
+    
+            <h4 class="mt-4 text-secondary">Danh sách sản phẩm</h4>
+            <% if (order.orderItems.length > 0) { %>
+              <div class="row">
+                <% order.orderItems.forEach(item => { %>
+                  <div class="col-md-6">
+                    <div class="card p-3 mb-3 shadow-sm">
+                      <div class="row">
+                        <!-- Ảnh sản phẩm hoặc ảnh biến thể -->
+                        <div class="col-md-4 d-flex align-items-center">
+                          <% if (item.variantId?.images?.length > 0) { %>
+                            <img src="<%= item.variantId.images[0] %>" alt="Ảnh biến thể" class="img-fluid rounded">
+                          <% } else { %>
+                            <p class="text-muted">Không có ảnh</p>
+                          <% } %>
+                        </div>
+    
+                        <!-- Thông tin sản phẩm -->
+                        <div class="col-md-8">
+                          <h5><%= item.productId?.name || "Tên không có" %></h5>
+                          <p><strong>Size:</strong> <%= item.variantId?.size || "N/A" %></p>
+                          <p><strong>Màu:</strong> <%= item.variantId?.color || "N/A" %></p>
+                          <p><strong>Số lượng:</strong> <%= item.quantity %></p>
+                          <p><strong>Giá:</strong> <%= item.salePrice || "N/A" %>đ</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="text-muted">Không có sản phẩm nào trong đơn hàng.</p>
+            <% } %>
+
+            <h4 class="mt-4 text-secondary">Lịch sử cập nhật trạng thái</h4>
+            <td>
+              <% if (order.history && order.history.length > 0) { %>
+                <style>
+                  .timeline {
+                    position: relative;
+                    margin-left: 20px;
+                    padding-left: 20px;
+                  }
+              
+                  .timeline-dot {
+                    position: absolute;
+                    left: -7px; /* căn giữa dot */
+                    top: 6px;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    z-index: 1;
+                  }
+              
+                  /* Dot màu theo trạng thái */
+                  .dot-Pending      { background-color: orange; }
+                  .dot-Processing   { background-color: dodgerblue; }
+                  .dot-Shipped      { background-color: mediumorchid; }
+                  .dot-Delivered    { background-color: mediumseagreen; }
+                  .dot-Cancelled    { background-color: crimson; }
+                  .dot-Paid         { background-color: goldenrod; }
+                  .dot-Refunded     { background-color: lightcoral; }  /* Thêm màu cho Refund */
+                  .dot-Completed { background-color: #007bff; }
+              
+                  .timeline-content {
+                    margin-left: 20px;
+                  }
+              
+                  .status {
+                    font-weight: bold;
+                    display: inline-block;
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    color: white;
+                    margin-bottom: 4px;
+                  }
+              
+                  .status-Pending      { background-color: orange; }
+                  .status-Processing   { background-color: dodgerblue; }
+                  .status-Shipped      { background-color: mediumorchid; }
+                  .status-Delivered    { background-color: mediumseagreen; }
+                  .status-Cancelled    { background-color: crimson; }
+                  .status-Paid         { background-color: goldenrod; }
+                  .status-Refunded     { background-color: lightcoral; }  /* Thêm màu cho Refund */
+                  .status-Completed { background-color: #007bff; }
+              
+                  .timeline-content p {
+                    margin: 4px 0;
+                  }
+              
+                  .timeline-content small {
+                    color: #888;
+                    font-size: 12px;
+                  }
+                </style>
+              
+                <div class="timeline">
+                  <% order.history.slice().reverse().forEach((status) => { %>
+                    <div class="timeline-item">
+                      <div class="timeline-dot dot-<%= status.status %>"></div>
+                      <div class="timeline-content">
+                        <div class="status status-<%= status.status %>"><%= status.status %></div>
+                        <p><%= status.description %></p>
+                        <small>
+                          <%= new Date(status.changedAt).toLocaleTimeString("vi-VN") %>
+                          <%= new Date(status.changedAt).toLocaleDateString("vi-VN") %>
+                          bởi <%= status.changedBy %>
+                        </small>
+                      </div>
+                    </div>
+                  <% }) %>
+                </div>
+              <% } else { %>
+                <span class="text-muted">Không có lịch sử trạng thái</span>
+              <% } %>
+              
+                                
+            </td>            
+            
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    
+
+  <!-- Control Sidebar -->
+  <aside class="control-sidebar control-sidebar-dark">
+    <!-- Control sidebar content goes here -->
+  </aside>
+  <!-- /.control-sidebar -->
+</div>
+<!-- ./wrapper -->
+<script>
+  // Điều khiển việc hiển thị phần chat khi click vào "Phản Hồi"
+  document.querySelector('a[href="#chatSection"]').addEventListener('click', function(e) {
+    e.preventDefault();  // Ngừng hành động mặc định của link
+    const chatSection = document.getElementById('chatSection');
+    
+    if (chatSection.style.display === "none" || chatSection.style.display === "") {
+      chatSection.style.display = "block";  // Hiển thị chat
+    } else {
+      chatSection.style.display = "none";  // Ẩn chat
+    }
+  });
+</script>
+<!-- jQuery -->
+<script src="/plugins/jquery/jquery.min.js"></script>
+<!-- jQuery UI 1.11.4 -->
+<script src="/plugins/jquery-ui/jquery-ui.min.js"></script>
+<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+<script>
+  $.widget.bridge('uibutton', $.ui.button)
+</script>
+<!-- Bootstrap 4 -->
+<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- ChartJS -->
+<script src="/plugins/chart.js/Chart.min.js"></script>
+<!-- Sparkline -->
+<script src="/plugins/sparklines/sparkline.js"></script>
+<!-- JQVMap -->
+<script src="/plugins/jqvmap/jquery.vmap.min.js"></script>
+<script src="/plugins/jqvmap/maps/jquery.vmap.usa.js"></script>
+<!-- jQuery Knob Chart -->
+<script src="/plugins/jquery-knob/jquery.knob.min.js"></script>
+<!-- daterangepicker -->
+<script src="/plugins/moment/moment.min.js"></script>
+<script src="/plugins/daterangepicker/daterangepicker.js"></script>
+<!-- Tempusdominus Bootstrap 4 -->
+<script src="/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js"></script>
+<!-- Summernote -->
+<script src="/plugins/summernote/summernote-bs4.min.js"></script>
+<!-- overlayScrollbars -->
+<script src="/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/dist/js/adminlte.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    function formatToVietnamese(amount) {
+      if (amount >= 1000000) {
+        const million = Math.floor(amount / 1000000);
+        return `${million} triệu đ`;
+      }
+      return "";
+    }
+  </script>
+</body>
+</html>

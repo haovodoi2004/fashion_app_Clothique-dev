@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập</title>
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css">
+    <style>
+        body {
+            background-color: #cccccc !important; /* Nền trắng */
+        }
+
+        .login-box {
+            width: 400px; /* Tăng độ rộng */
+        }
+
+        .card {
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+            border-radius: 10px; /* Bo góc mềm mại */
+            border: none; /* Loại bỏ viền */
+            padding: 20px; /* Thêm khoảng cách bên trong */
+        }
+
+        .login-logo img {
+            max-width: 180px; /* Tăng kích thước logo */
+        }
+
+        .btn-primary {
+            background-color: #007bff; /* Giữ màu xanh đẹp */
+            border-radius: 5px; /* Bo góc nút */
+            border: none;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3; /* Hiệu ứng hover */
+        }
+    </style>
+</head>
+<body class="hold-transition login-page">
+    <div class="login-box">
+        <div class="login-logo text-center">
+            <img src="/uploads/logo.png" alt="Admin Logo" class="img-fluid" style="max-width: 300px;">
+        </div>
+        <div class="card">
+            <div class="card-body login-card-body">
+                <p class="login-box-msg">Đăng nhập để vào hệ thống</p>
+                <form id="loginForm">
+                    <div class="input-group mb-3">
+                        <input type="text" id="email" class="form-control" placeholder="Tài khoản">
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <span class="fas fa-user"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="password" id="password" class="form-control" placeholder="Mật khẩu">
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <span class="fas fa-lock"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+document.getElementById("loginForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!email || !password) {
+        alert("Vui lòng nhập tài khoản và mật khẩu!");
+        return;
+    }
+
+    try {
+        const response = await fetch("/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem("accessToken", data.accessToken);
+            alert("Đăng nhập thành công!");
+            window.location.href = "/v1/dashboard";
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        console.error("Lỗi:", error);
+        alert("Lỗi server!");
+    }
+});
+
+
+      </script>
+</body>
+</html>

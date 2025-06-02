@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin Chat</title>
+    <!-- Thêm link AdminLTE và các plugin CSS -->
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css" />
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css" />
+    <!-- Thêm thư viện Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+      /* Bạn có thể tuỳ chỉnh style cho khu vực chat ở đây */
+      #chat-user-list {
+        background: #2c3e50;
+        color: white;
+        height: 600px; /* Hoặc chiều cao tuỳ ý */
+        overflow-y: auto;
+      }
+      .user {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #34495e;
+      }
+      .user-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        transition: opacity 0.3s ease;
+        position: relative;
+      }
+      .user-panel .info {
+        display: flex;
+        justify-content: center; /* Canh giữa ngang */
+        align-items: center; /* Canh giữa dọc */
+        height: 100%; /* Đảm bảo phần tử con chiếm hết chiều cao */
+      }
+      .user-panel .admin-name {
+        font-size: 24px; /* Tăng kích thước chữ */
+        font-weight: bold; /* In đậm */
+        color: white; /* Chữ màu trắng */
+      }
+      .hide-btn {
+        display: none;
+        background-color: red;
+        color: white;
+        border: none;
+        padding: 5px;
+        cursor: pointer;
+      }
+
+      .user-item.show-hide-btn .hide-btn {
+        display: block;
+      }
+
+      .user:hover {
+        background: #34495e;
+      }
+      .user-item.new-message .user-info {
+        color: red;
+        font-weight: bold;
+      }
+      #chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 600px; /* Cùng chiều cao với #chat-user-list */
+        border: 1px solid #ccc;
+      }
+      #chat {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        background: #ecf0f1;
+      }
+      #message-input {
+        width: calc(100% - 60px);
+        padding: 10px;
+        border: 1px solid #ccc;
+        margin-top: 10px;
+      }
+      #send-btn {
+        padding: 10px;
+        background: #007bff;
+        color: white;
+        border: none;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+      .message {
+        margin-bottom: 8px;
+      }
+      .message strong {
+        margin-right: 5px;
+      }
+      .modal {
+        display: none; /* Ẩn mặc định */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        width: 300px;
+        text-align: center;
+      }
+
+      .close-btn {
+        float: right;
+        font-size: 20px;
+        cursor: pointer;
+      }
+      #closeModalBtn {
+        margin-top: 15px;
+        padding: 8px 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #closeModalBtn:hover {
+        background-color: #0056b3;
+      }
+      .bg-light {
+        background-color: #f0f0f0 !important;
+      }
+      .user-item.new-message {
+        background-color: #ffecec;
+      }
+      .message {
+        margin: 5px 0;
+        display: flex;
+      }
+
+      .message .message-content {
+        max-width: 70%;
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .sent {
+        justify-content: flex-end;
+      }
+
+      .sent .message-content {
+        background-color: #dcf8c6;
+        text-align: right;
+      }
+
+      .received {
+        justify-content: flex-start;
+      }
+
+      .received .message-content {
+        background-color: #eee;
+        text-align: left;
+      }
+    </style>
+  </head>
+
+  <body class="hold-transition sidebar-mini layout-fixed">
+    <div class="wrapper">
+      <!-- Navbar -->
+      <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button"
+              ><i class="fas fa-bars"></i
+            ></a>
+          </li>
+          <li class="nav-item d-none d-sm-inline-block">
+            <a href="/v1/dashboard/" class="nav-link">Trang chủ</a>
+          </li>
+          <li class="nav-item">
+            <a id="chat-tab-btn" href="/v1/dashboard/chat" class="nav-link"
+              >Phản Hồi</a
+            >
+          </li>
+        </ul>
+
+        <!-- Right navbar links -->
+        <ul class="navbar-nav ml-auto">
+          <!-- Navbar Search -->
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              data-widget="navbar-search"
+              href="#"
+              role="button"
+            >
+              <i class="fas fa-search"></i>
+            </a>
+            <div class="navbar-search-block">
+              <form class="form-inline">
+                <div class="input-group input-group-sm">
+                  <input
+                    class="form-control form-control-navbar"
+                    type="search"
+                    placeholder="Search"
+                    aria-label="Search"
+                  />
+                  <div class="input-group-append">
+                    <button class="btn btn-navbar" type="submit">
+                      <i class="fas fa-search"></i>
+                    </button>
+                    <button
+                      class="btn btn-navbar"
+                      type="button"
+                      data-widget="navbar-search"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </li>
+
+          <!-- Messages Dropdown Menu -->
+          <!-- Notifications Dropdown Menu -->
+          <li id="nav-notif" class="nav-item dropdown">
+            <a
+              class="nav-link"
+              data-toggle="dropdown"
+              href="#"
+              aria-expanded="false"
+            >
+              <i class="far fa-bell"></i>
+              <span id="notif-badge" class="badge badge-warning navbar-badge"
+                >0</span
+              >
+            </a>
+            <div
+              id="notif-menu"
+              class="dropdown-menu dropdown-menu-lg dropdown-menu-right p-0"
+            >
+              <div class="px-3 py-2 border-bottom">
+                <strong id="notif-header">0 Notifications</strong>
+              </div>
+              <div
+                id="notif-items"
+                style="max-height: 300px; overflow-y: auto"
+              ></div>
+              <div class="dropdown-divider m-0"></div>
+              <a href="#" id="mark-all-read" class="dropdown-item text-center"
+                >Đánh dấu tất cả là đã đọc</a
+              >
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+              <i class="fas fa-expand-arrows-alt"></i>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              data-widget="control-sidebar"
+              data-controlsidebar-slide="true"
+              href="#"
+              role="button"
+            >
+              <i class="fas fa-th-large"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- /.navbar -->
+
+      <!-- Main Sidebar Container -->
+      <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <!-- Brand Logo -->
+        <a class="brand-link">
+          <img
+            src="/uploads/logo.png"
+            alt="Admin Logo"
+            class="brand-image img-circle elevation-3 bg-white"
+            style="max-width: 150px"
+          />
+          <span class="brand-text font-weight-light">Clothique</span>
+        </a>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <!-- Sidebar user panel (optional) -->
+          <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="info">
+              <div class="admin-name">Chủ Cửa Hàng</div>
+            </div>
+          </div>
+
+          <!-- Sidebar Menu -->
+          <nav class="mt-2">
+            <ul
+              class="nav nav-pills nav-sidebar flex-column"
+              data-widget="treeview"
+              role="menu"
+              data-accordion="false"
+            >
+              <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+
+              <li class="nav-item menu-open">
+                <a href="#" class="nav-link active">
+                  <i class="nav-icon fas fa-tachometer-alt"></i>
+                  <p>
+                    Trung Tâm Điều Khiển
+                    <i class="right fas fa-angle-left"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/products" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý sản phẩm</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/categories" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý loại sản phẩm</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/orders" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý đơn hàng</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/transactions" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý hóa đơn</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/coupons" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý mã giảm giá</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/users" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý người dùng</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/comment" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Quản lý bình luận</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link text-white">
+                  <i class="nav-icon fas fa-user"></i>
+                  <p>
+                    Tài Khoản
+                    <i class="right fas fa-angle-left"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="/v1/dashboard/logout" class="nav-link text-danger">
+                      <i class="nav-icon fas fa-sign-out-alt"></i>
+                      <p>Đăng xuất</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </nav>
+          <!-- /.sidebar-menu -->
+        </div>
+        <!-- /.sidebar -->
+      </aside>
+
+      <!-- CONTENT WRAPPER -->
+      <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+          <div class="container-fluid">
+            <div class="row mb-2">
+              <div class="col-sm-6">
+                <h1 class="m-0">Phản Hồi / Chat</h1>
+              </div>
+              <div class="col-sm-6 d-flex justify-content-end">
+                <button
+                  id="showHiddenUsersBtn"
+                  class="btn btn-primary"
+                  onclick="showHiddenUsers()"
+                >
+                  Hiển thị user đã ẩn
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <section class="content">
+          <div class="container-fluid">
+            <!-- Row chứa phần chat -->
+            <div class="row">
+              <!-- Cột danh sách user -->
+              <div class="col-md-3" id="chat-user-list">
+                <h3 class="mt-2">User List</h3>
+                <ul id="user-list">
+                  <!-- Danh sách user sẽ được cập nhật tại đây -->
+                </ul>
+              </div>
+              <!-- Cột khung chat -->
+              <div class="col-md-9">
+                <div id="chat-container">
+                  <h2 id="chat-title">Select a user to chat</h2>
+                  <div id="chat"></div>
+                  <input
+                    type="text"
+                    id="message-input"
+                    placeholder="Type a message..."
+                  />
+                  <button id="send-btn">Send</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- /.content -->
+      </div>
+      <!-- /.content-wrapper -->
+
+      <!-- Control Sidebar -->
+      <aside class="control-sidebar control-sidebar-dark">
+        <!-- Control sidebar content goes here -->
+      </aside>
+    </div>
+    <!-- ./wrapper -->
+
+    <!-- jQuery -->
+    <script src="/plugins/jquery/jquery.min.js"></script>
+    <!-- Bootstrap 4 -->
+    <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- AdminLTE App -->
+    <script src="/dist/js/adminlte.min.js"></script>
+
+    <!-- Script Chat (tương tự code chat cũ) -->
+    <script>
+      const socket = io();
+      const adminId = "admin";
+      const adminUsername = "Admin";
+      let isReloadingMessages = false;
+      let selectedUser = null,
+        messages = {},
+        unreadUsers = {},
+        notifications = [];
+
+      // UI refs
+      const chatUserList = document.getElementById("chat-user-list");
+      const chatTitle = document.getElementById("chat-title");
+      const chatContainer = document.getElementById("chat");
+      const messageInput = document.getElementById("message-input");
+      const sendButton = document.getElementById("send-btn");
+      const notificationBadge = document.getElementById("notif-badge");
+      const notifItems = document.getElementById("notif-items");
+      const markAllBtn = document.getElementById("mark-all-read");
+      const notifHeader = document.getElementById("notif-header");
+
+      // --- SOCKET.IO SETUP ---
+      socket.emit("register", { userId: adminId, username: adminUsername });
+
+      socket.on("updateUserList", (users) => {
+        chatUserList.innerHTML = "<h3 class='mt-2'>User List</h3>";
+        users.forEach((u) => {
+          if (u.userId === adminId) return;
+          const div = document.createElement("div");
+          div.className = "user-item";
+          div.dataset.id = u.userId;
+          div.innerHTML = `
+            <div class="user-info">${u.username}</div>
+            <button class="hide-btn">Ẩn</button>
+          `;
+          if (unreadUsers[u.userId]) div.classList.add("new-message");
+          div.querySelector(".user-info").onclick = () =>
+            selectUser(u.userId, u.username);
+          div.querySelector(".hide-btn").onclick = () => {
+            socket.emit("hideChatWithUser", u.userId);
+            div.remove();
+          };
+          chatUserList.appendChild(div);
+        });
+      });
+      // Khi có thông báo mới từ server (qua socket)
+      socket.on("newNotification", (notification) => {
+        // Kiểm tra trùng (ví dụ kiểm tra userId và timestamp)
+        const exists = notifications.some(
+          (n) =>
+            n.userId === notification.userId &&
+            new Date(n.timestamp).toISOString() ===
+              new Date(notification.timestamp).toISOString()
+        );
+        if (!exists) {
+          notifications.unshift(notification);
+          updateBadge(); // cập nhật số lượng
+          renderDropdown(); // cập nhật giao diện dropdown
+        }
+      });
+
+      socket.on("chatHistory", ({ userId, messages: hist }) => {
+        messages[userId] = hist.map((m) => ({
+          senderName:
+            m.sender === adminId ? adminUsername : m.senderName || m.sender,
+          message: m.message,
+          timestamp: new Date(m.timestamp).getTime(),
+        }));
+        if (userId === selectedUser) renderMessages(userId);
+      });
+
+      socket.on("receivePrivateMessage", (data) => {
+        if (data.sender === adminId) return;
+
+        const senderId = data.sender;
+        const senderName =
+          senderId === adminId ? adminUsername : data.senderName;
+        const chatPartner = senderId === adminId ? selectedUser : senderId;
+        messages[chatPartner] = messages[chatPartner] || [];
+        messages[chatPartner].push({
+          senderName,
+          message: data.message,
+          timestamp: Date.now(),
+        });
+
+        if (selectedUser === chatPartner) {
+          displayMessage(senderName, data.message);
+        } else {
+          unreadUsers[chatPartner] = true;
+          document
+            .querySelector(`[data-id="${chatPartner}"]`)
+            ?.classList.add("new-message");
+          // thêm notification
+          addNotification({
+            userId: senderId,
+            username: senderName,
+            timestamp: new Date().toLocaleString("vi-VN"),
+            type: "message",
+          });
+        }
+      });
+      // --- CHAT UI ---
+      sendButton.onclick = sendMessage;
+      messageInput.onkeypress = (e) => {
+        if (e.key === "Enter") sendMessage();
+      };
+      // --- Thêm notification mới cả front+API ---
+      async function addNotification(n) {
+        const local = {
+          ...n,
+          type: n.type || "message",
+          read: false,
+          _id: null,
+          timestamp: new Date().toISOString(),
+        };
+        notifications.unshift(local);
+        updateBadge();
+        renderDropdown();
+
+        try {
+          const resp = await fetch("/v1/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: n.userId,
+              username: n.username,
+              title: "Tin nhắn mới",
+              message: "Bạn có tin nhắn mới từ " + n.username,
+              read: false,
+            }),
+          });
+          const saved = await resp.json();
+          local._id = saved._id;
+        } catch (err) {
+          console.error("Failed to save notification:", err);
+        }
+      }
+
+      // Nhận notification cập nhật đơn hàng
+      socket.on("orderStatusUpdate", (notification) => {
+        console.log("📦 Đơn hàng cập nhật:", notification);
+        notifications.unshift(notification);
+        updateBadge();
+        renderDropdown();
+      });
+
+      // Nhận notification comment từ admin
+      socket.on("newCommentNotification", (notification) => {
+        console.log("💬 Comment mới từ admin:", notification);
+        notifications.unshift(notification);
+        updateBadge();
+        renderDropdown();
+      });
+
+      function sendMessage() {
+        if (!selectedUser) return alert("Chọn user!");
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+
+        // Emit chỉ 1 lần để gửi tin nhắn
+        socket.emit("sendPrivateMessage", {
+          sender: adminId,
+          receiver: selectedUser,
+          message: msg,
+        });
+        displayMessage(adminUsername, msg);
+        // Cập nhật tin nhắn vào UI và state
+        messages[selectedUser] = messages[selectedUser] || [];
+        messages[selectedUser].push({
+          senderName: adminUsername,
+          message: msg,
+          timestamp: Date.now(),
+        });
+
+        // Xóa nội dung input sau khi gửi
+        messageInput.value = "";
+      }
+
+      function selectUser(id, name) {
+        selectedUser = id;
+        chatTitle.innerText = `Chat với ${name}`;
+        chatContainer.innerHTML = "";
+        delete unreadUsers[id];
+        const ui = document.querySelector(`[data-id="${id}"]`);
+        if (ui) ui.classList.remove("new-message");
+        if (messages[id]) renderMessages(id);
+        // Đặt cờ trước khi lấy tin nhắn từ server
+        isReloadingMessages = true;
+        socket.emit("getMessages", id);
+      }
+
+      const messagesContainer = document.getElementById("chat");
+
+      function displayMessage(senderName, message) {
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+
+        if (senderName === adminUsername) {
+          messageElement.classList.add("sent");
+        } else {
+          messageElement.classList.add("received");
+        }
+
+        messageElement.innerHTML = `
+    <div class="message-content">
+      <strong>${senderName}</strong>: ${message}
+    </div>
+  `;
+
+        messagesContainer.appendChild(messageElement);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      function renderMessages(uid) {
+        chatContainer.innerHTML = "";
+        messages[uid].forEach((m) => displayMessage(m.senderName, m.message));
+      }
+
+      // --- NOTIFICATIONS ---
+
+      // 1) Load tất cả notifications từ server
+      async function loadNotifications() {
+        const resp = await fetch("/v1/notifications");
+        const notes = (await resp.ok) ? await resp.json() : [];
+        notifications = notes.map((n) => ({
+          _id: n._id,
+          userId: n.userId,
+          username: n.username,
+          timestamp: n.createdAt,
+          read: n.read, // lấy read từ server
+          type: n.type || "message",
+        }));
+        updateBadge(); // cập nhật badge ngay
+        renderDropdown();
+      }
+
+      document.addEventListener("DOMContentLoaded", loadNotifications);
+
+      // 2) Tạo notification mới → POST xong mới unshift vào notifications
+      async function addNotificationToServer({ userId, username, type }) {
+        const payload = {
+          userId,
+          username,
+          message: "Có tin nhắn mới", // Tùy theo loại thông báo
+          type: type, // Loại thông báo
+        };
+        try {
+          const res = await fetch("/v1/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error("Create failed");
+          const saved = await res.json();
+
+          const newNotif = {
+            _id: saved._id,
+            userId: saved.userId,
+            username: saved.username,
+            message: saved.message,
+            timestamp: saved.createdAt,
+            read: saved.read,
+            type: saved.type,
+          };
+
+          // Kiểm tra trùng trước khi thêm
+          const exists = notifications.some(
+            (n) =>
+              n.userId === newNotif.userId &&
+              new Date(n.timestamp).toISOString() ===
+                new Date(newNotif.timestamp).toISOString()
+          );
+          if (!exists) {
+            notifications.unshift(newNotif);
+            updateBadge();
+            renderDropdown();
+          }
+        } catch (e) {
+          console.error("❌ addNotificationToServer:", e);
+        }
+      }
+
+      // 3) Mark một notification là đã đọc
+      async function markRead(idx) {
+        try {
+          const res = await fetch("/v1/notifications/markAsRead", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: notifications[idx]._id }),
+          });
+          if (!res.ok) throw new Error("Mark failed");
+          const updated = await res.json();
+          // SỬA: lấy luôn trạng thái read từ server để đồng nhất
+          notifications[idx].read = !!(updated.read ?? updated.isRead);
+        } catch (e) {
+          console.error("❌ markRead:", e);
+          // nếu lỗi, vẫn giữ client-side là đã đọc để khỏi nhảy badge
+          notifications[idx].read = true;
+        }
+        await loadNotifications(); // đảm bảo đồng bộ dữ liệu
+      }
+
+      // 4) Mark tất cả đã đọc
+      markAllBtn.onclick = async (e) => {
+        e.preventDefault();
+        try {
+          const res = await fetch("/v1/notifications/mark-all-read", {
+            method: "PUT",
+          });
+          if (!res.ok) throw new Error("Mark all failed");
+          notifications.forEach((n) => (n.read = true));
+          updateBadge();
+          renderDropdown();
+        } catch (e) {
+          console.error("❌ mark-all-read:", e);
+        }
+      };
+
+      // 5) Render dropdown và badge
+      function renderDropdown() {
+        // 1) Cập nhật badge + header
+        const unreadCount = notifications.filter((n) => !n.read).length;
+        notificationBadge.innerText = unreadCount || "";
+        notificationBadge.style.display = unreadCount ? "inline" : "none";
+        notifHeader.innerText = `${unreadCount} Notifications`;
+
+        // 2) Build lại HTML, dùng data-index
+        notifItems.innerHTML = notifications
+          .map((n, i) => {
+            const dt = new Date(n.timestamp);
+            const dateStr = dt.toLocaleDateString("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            });
+            const timeStr = dt.toLocaleTimeString("vi-VN", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+            return `
+      <a href="#"
+         class="dropdown-item${n.read ? "" : " bg-light"}"
+         data-index="${i}"
+         data-user-id="${n.userId}"
+         data-username="${n.username}">
+        <i class="fas fa-${
+          n.type === "message"
+            ? "envelope"
+            : n.type === "comment"
+            ? "comment"
+            : "box"
+        } mr-2"></i>
+        <strong>${n.username}</strong> đã gửi tin nhắn mới
+        <span class="float-right text-muted text-sm">
+          ${timeStr} ${dateStr}
+        </span>
+      </a>
+      <div class="dropdown-divider"></div>
+    `;
+          })
+          .join("");
+
+        // 3) Gán listener cho từng item
+        notifItems.querySelectorAll("a.dropdown-item").forEach((el) => {
+          el.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const idx = Number(el.dataset.index);
+            const note = notifications[idx];
+
+            // nếu chưa đọc → patch lên server và update local luôn
+            if (!note.read) {
+              try {
+                const res = await fetch(`/v1/notifications/${note._id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ read: true }),
+                });
+                if (!res.ok) {
+                  const text = await res.text();
+                  console.error("Mark-read thất bại:", res.status, text);
+                }
+              } catch (err) {
+                console.error("Lỗi khi gọi API mark-read:", err);
+              }
+              // dù thành công hay thất bại, cũng đánh dấu local để UI phản hồi ngay
+              note.read = true;
+              updateBadge();
+              renderDropdown();
+            }
+
+            // Cuối cùng chuyển sang chat với người dùng đó
+            selectUser(el.dataset.userId, el.dataset.username);
+          });
+        });
+      }
+
+      function updateBadge() {
+        const cnt = notifications.filter((n) => !n.read).length;
+        notificationBadge.innerText = cnt || "";
+        notificationBadge.style.display = cnt ? "inline" : "none";
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chỉnh sửa sản phẩm</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    .form-group { margin-bottom: 1.5rem; }
+    .variant-images img { width: 60px; height: 60px; object-fit: cover; margin-right: 5px; border-radius: 5px; }
+    .card-body { padding: 20px; }
+    .image-list {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .image-list li {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid #ccc;
+      padding: 5px;
+      border-radius: 5px;
+    }
+
+    .variant-thumbnail {
+      width: 50px; /* Hiển thị ảnh nhỏ */
+      height: 50px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+
+    .delete-image-btn {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 3px 6px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="hold-transition login-page"> 
+  <div class="container mt-4">
+    <div class="card card-primary">
+      <div class="card-header">
+        <h3 class="card-title">Chỉnh sửa sản phẩm</h3>
+      </div>
+      <form action="/v1/product/update-product/<%= product._id %>" method="POST">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="name">Tên sản phẩm</label>
+            <input type="text" id="name" name="name" class="form-control" value="<%= product.name %>" required>
+          </div>
+          <div class="form-group">
+            <label for="description">Mô tả sản phẩm</label>
+            <textarea id="description" name="description" class="form-control" rows="4" required><%= product.description %></textarea>
+          </div>
+          <div class="form-group">
+            <label for="category">Loại sản phẩm</label>
+            <select id="category" name="category" class="form-control">
+              <% if (categories.length > 0) { %>
+                <% categories.forEach(category => { %>
+                  <option value="<%= category._id %>" <%= product.category.toString() == category._id.toString() ? 'selected' : '' %>><%= category.name %></option>
+                <% }) %>
+              <% } else { %>
+                <option disabled selected>Không có loại sản phẩm nào</option>
+              <% } %>              
+            </select>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <h5 class="mb-3">Biến thể sản phẩm</h5>
+          <button type="button" class="btn btn-success mb-3" data-toggle="modal" data-target="#addVariantModal">Thêm biến thể</button>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Màu</th>
+                <th>Giá nhập</th>
+                <th>Giá bán</th>
+                <th>Số lượng</th>
+                <th>Ảnh</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% product.variants.forEach(variant => { %>
+                <tr>
+                  <td><%= variant.size %></td>
+                  <td><%= variant.color %></td>
+                  <td><%= variant.importPrice %> VNĐ</td>
+                  <td><%= variant.salePrice %> VNĐ</td>
+                  <td><%= variant.stock %></td>
+                  <td class="variant-images">
+                    <% if (Array.isArray(variant.images) && variant.images.length > 0) { %>
+                      <ul class="image-list">
+                        <% variant.images.forEach(image => { %>
+                          <li>
+                            <img src="<%= image %>" alt="Ảnh biến thể" class="variant-thumbnail">
+                            <button type="button" class="btn btn-danger btn-sm delete-image-btn" data-variant-id="<%= variant._id %>" data-image-url="<%= image %>">X</button>
+                          </li>
+                        <% }) %>
+                      </ul>
+                    <% } %>
+                    <button type="button" class="btn btn-sm btn-primary add-image-btn" data-id="<%= variant._id %>">Thêm ảnh</button>
+                  </td>                  
+                  <td>
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" data-toggle="modal" data-target="#updateVariantModal" data-id="<%= variant._id %>" data-name="<%= variant.size %>" data-color="<%= variant.color %>" data-import-price="<%= variant.importPrice %>" data-sale-price="<%= variant.salePrice %>" data-stock="<%= variant.stock %>">
+                      Sửa
+                    </button>
+                    <!-- <button type="button" class="btn btn-danger btn-sm delete-variant" data-id="<%= variant._id %>">Xóa</button> -->
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="card-footer text-center">
+          <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+          <a href="/v1/dashboard/products" class="btn btn-secondary">Hủy</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<!-- Modal thêm biến thể -->
+<div class="modal fade" id="addVariantModal" tabindex="-1" aria-labelledby="addVariantLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addVariantLabel">Thêm biến thể</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="variantForm">
+          <!-- Dropdown chọn size -->
+          <div class="form-group">
+            <label for="variantSize">Size</label>
+            <select id="variantSize" name="size" class="form-control" required>
+              <option value="XXS">XXS</option>
+              <option value="XS">XS</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+              <option value="XXXL">XXXL</option>
+            </select>
+          </div>
+
+          <!-- Chọn màu bằng button -->
+          <div class="form-group">
+            <label>Màu</label>
+            <div id="colorOptions" class="d-flex flex-wrap">
+              <input type="hidden" id="variantColor" name="color" required>
+              <button type="button" class="color-btn" data-color="Đỏ" style="background-color: red;"></button>
+              <button type="button" class="color-btn" data-color="Xanh Dương" style="background-color: blue;"></button>
+              <button type="button" class="color-btn" data-color="Xanh Lá" style="background-color: green;"></button>
+              <button type="button" class="color-btn" data-color="Đen" style="background-color: black;"></button>
+              <button type="button" class="color-btn" data-color="Trắng" style="background-color: white;"></button>
+              <button type="button" class="color-btn" data-color="Xám" style="background-color: gray;"></button>
+              <button type="button" class="color-btn" data-color="Vàng" style="background-color: yellow;"></button>
+              <button type="button" class="color-btn" data-color="Cam" style="background-color: orange;"></button>
+              <button type="button" class="color-btn" data-color="Tím" style="background-color: purple;"></button>
+              <button type="button" class="color-btn" data-color="Hồng" style="background-color: pink;"></button>
+              <button type="button" class="color-btn" data-color="Nâu" style="background-color: brown;"></button>
+              <button type="button" class="color-btn" data-color="Xanh Dương Đậm" style="background-color: navy;"></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="variantImportPrice">Giá nhập</label>
+            <input type="number" id="variantImportPrice" name="importPrice" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="variantSalePrice">Giá bán</label>
+            <input type="number" id="variantSalePrice" name="salePrice" class="form-control" required>
+          </div>          
+          <div class="form-group">
+            <label for="variantStock">Số lượng</label>
+            <input type="number" id="variantStock" name="stock" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Thêm</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Modal chỉnh sửa biến thể -->
+<div class="modal fade" id="editVariantModal" tabindex="-1" aria-labelledby="editVariantLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editVariantLabel">Chỉnh sửa biến thể</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="editVariantForm">
+          <!-- Trường ẩn để lưu ID -->
+          <input type="hidden" id="editVariantId" name="id">
+
+          <!-- Dropdown chọn size -->
+          <div class="form-group">
+            <label for="editVariantSize">Size</label>
+            <select id="editVariantSize" name="size" class="form-control" required>
+              <option value="XXS">XXS</option>
+              <option value="XS">XS</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+              <option value="XXXL">XXXL</option>
+            </select>
+          </div>
+
+          <!-- Chọn màu bằng button -->
+          <div class="form-group">
+            <label>Màu</label>
+            <div id="editColorOptions" class="d-flex flex-wrap">
+              <input type="hidden" id="editVariantColor" name="color" required>
+              <button type="button" class="color-btn" data-color="Đỏ" style="background-color: red;"></button>
+              <button type="button" class="color-btn" data-color="Xanh Dương" style="background-color: blue;"></button>
+              <button type="button" class="color-btn" data-color="Xanh Lá" style="background-color: green;"></button>
+              <button type="button" class="color-btn" data-color="Đen" style="background-color: black;"></button>
+              <button type="button" class="color-btn" data-color="Trắng" style="background-color: white;"></button>
+              <button type="button" class="color-btn" data-color="Xám" style="background-color: gray;"></button>
+              <button type="button" class="color-btn" data-color="Vàng" style="background-color: yellow;"></button>
+              <button type="button" class="color-btn" data-color="Cam" style="background-color: orange;"></button>
+              <button type="button" class="color-btn" data-color="Tím" style="background-color: purple;"></button>
+              <button type="button" class="color-btn" data-color="Hồng" style="background-color: pink;"></button>
+              <button type="button" class="color-btn" data-color="Nâu" style="background-color: brown;"></button>
+              <button type="button" class="color-btn" data-color="Xanh Dương Đậm" style="background-color: navy;"></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editVariantImportPrice">Giá nhập</label>
+            <input type="number" id="editVariantImportPrice" name="importPrice" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="editVariantSalePrice">Giá bán</label>
+            <input type="number" id="editVariantSalePrice" name="salePrice" class="form-control" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="editVariantStock">Số lượng</label>
+            <input type="number" id="editVariantStock" name="stock" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="modal fade" id="uploadImageModal" tabindex="-1" aria-labelledby="uploadImageLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="uploadImageLabel">Thêm ảnh cho biến thể</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="uploadImageForm">
+            <input type="file" id="variantImage" accept="image/*" required>
+            <button type="submit" class="btn btn-primary">Tải lên</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Thêm CSS để hiển thị màu đẹp hơn -->
+  <style>
+    .color-btn {
+      width: 35px;
+      height: 35px;
+      border: 3px solid black;
+      border-radius: 50%;
+      margin: 5px;
+      cursor: pointer;
+      transition: 0.2s;
+      position: relative;
+    }
+
+    .color-btn.selected {
+      box-shadow: 0 8px 0 gray; /* Gạch chân xa hơn */
+    }
+  
+    .d-flex.flex-wrap {
+      gap: 5px;
+    }
+  </style>
+
+  <script>
+    document.querySelectorAll('.color-btn').forEach(button => {
+      button.addEventListener('click', function () {
+        document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('selected'));
+        this.classList.add('selected');
+        document.getElementById('variantColor').value = this.dataset.color;
+      });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll(".delete-image-btn").forEach(button => {
+        button.addEventListener("click", async function () {
+          const variantId = this.dataset.variantId;
+          const imageUrl = this.dataset.imageUrl;
+          
+          if (!confirm("Bạn có chắc muốn xóa ảnh này?")) return;
+
+          try {
+            const response = await fetch("/v1/variant/delete-image", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ variantId, imageUrl }),
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+              alert("Xóa ảnh thành công!");
+              this.parentElement.remove(); // Xóa ảnh trên giao diện
+            } else {
+              alert(result.message || "Xóa ảnh thất bại!");
+            }
+          } catch (error) {
+            console.error("Lỗi khi xóa ảnh:", error);
+            alert("Đã xảy ra lỗi khi xóa ảnh!");
+          }
+        });
+      });
+    });
+
+  </script>
+  <script>
+    $(document).on("click", ".add-image-btn", function () {
+      const variantId = $(this).data("id");
+      $("#uploadImageModal").data("variant-id", variantId).modal("show");
+    });
+
+    $("#uploadImageForm").submit(function (event) {
+      event.preventDefault();
+      
+      let formData = new FormData();
+      let file = $("#variantImage")[0].files[0];
+      if (!file) {
+        alert("Vui lòng chọn ảnh!");
+        return;
+      }
+
+      formData.append("image", file);
+      const variantId = $("#uploadImageModal").data("variant-id");
+      console.log(variantId);
+      
+      $.ajax({
+        url: `/v1/variant/upload-image/${variantId}`,
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          alert("Ảnh đã được tải lên!");
+          location.reload();
+        },
+        error: function (xhr) {
+          alert("Lỗi khi tải ảnh: " + (xhr.responseJSON?.message || "Lỗi không xác định"));
+        },
+      });
+    });
+
+    // Hiển thị ảnh xem trước khi tải lên
+    $("#variantImages").change(function(event) {
+      $("#imagePreview").empty();
+      for (let file of event.target.files) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          $("#imagePreview").append(`<img src="${e.target.result}" class="variant-images">`);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Xóa biến thể
+    $(".delete-variant").click(function() {
+      let variantId = $(this).data("id");
+      if (confirm("Bạn có chắc muốn xóa biến thể này?")) {
+        $.ajax({
+          url: "/v1/variant/" + variantId,
+          type: "DELETE",
+          success: function() {
+            alert("Đã xóa biến thể!");
+            location.reload();
+          },
+          error: function(xhr) {
+            alert("Lỗi khi xóa: " + xhr.responseText);
+          }
+        });
+      }
+    });
+
+    $(document).ready(function () {
+  $(".edit-btn").click(function () {
+    let id = $(this).data("id");
+    let size = $(this).data("name");
+    let color = $(this).data("color");
+    let importPrice = $(this).data("import-price");
+    let salePrice = $(this).data("sale-price");
+    let stock = $(this).data("stock");
+
+    $("#editVariantId").val(id);
+    $("#editVariantSize").val(size);
+    $("#editVariantColor").val(color);
+    $("#editVariantImportPrice").val(importPrice);
+    $("#editVariantSalePrice").val(salePrice);
+    $("#editVariantStock").val(stock);
+
+    $(".color-btn").removeClass("selected");
+    $(`.color-btn[data-color="${color}"]`).addClass("selected");
+
+    $("#editVariantModal").modal("show");
+  });
+});
+
+
+    $("#addVariantModal").on("hidden.bs.modal", function () {
+    // Xóa hết dữ liệu trong các input
+    $(this).find("input").val("");
+
+    // Xóa class "selected" khỏi các nút màu
+    $(".color-btn").removeClass("selected");
+  });
+
+  $(document).ready(function () {
+    $("#editVariantForm").submit(function (event) {
+      const variantId = $("#editVariantId").val();
+
+      // Lấy dữ liệu từ form
+      let variantData = {
+        size: $("#editVariantSize").val(),
+        color: $("#editVariantColor").val(),
+        importPrice: parseFloat($("#editVariantImportPrice").val()),
+        salePrice: parseFloat($("#editVariantSalePrice").val()),
+        stock: parseInt($("#editVariantStock").val()),
+      };
+
+
+      // Gửi API cập nhật biến thể
+      $.ajax({
+        url: `/v1/variant/${variantId}`,  // 🔹 Thay bằng API thực tế của Aruji-sama
+        type: "PUT",                  // 🔹 Phương thức cập nhật dữ liệu
+        contentType: "application/json",
+        data: JSON.stringify(variantData),
+        success: function (response) {
+          alert("Cập nhật thành công!");
+
+          location.reload();
+        },
+        error: function (xhr) {
+          // Hiển thị lỗi từ server (nếu có)
+          let errorMessage = xhr.responseJSON?.message || "Có lỗi xảy ra!";
+          alert("Lỗi: " + errorMessage);
+        },
+      });
+    });
+  });
+
+
+
+  $("#variantForm").submit(function(e) {
+    e.preventDefault();
+    let formData = {
+      productId: "<%= product._id %>",
+      size: $("#variantSize").val(),
+      color: $("#variantColor").val(),
+      importPrice: $("#variantImportPrice").val(),
+      salePrice: $("#variantSalePrice").val(),
+      stock: $("#variantStock").val()
+    };
+    console.log(formData);
+    
+    $.post("/v1/variant/", formData, function(response) {
+      alert("Thêm biến thể thành công!");
+      location.reload();
+    }).fail(function(xhr) {
+      alert("Lỗi khi thêm biến thể: " + xhr.responseText);
+    });
+  });
+
+  </script>
+  <script>
+    const socket = io();
+    let selectedUser = null;
+    let selectedUsername = "";
+    let messages = {};
+    let unreadUsers = {};
+    let notifications = [];
+    let unreadCount = 0;
+
+    const adminId = "admin";
+    const adminUsername = "Admin";
+
+    const chatUserList = document.getElementById("chat-user-list");
+    const chatTitle = document.getElementById("chat-title");
+    const chatContainer = document.getElementById("chat");
+    const messageInput = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-btn");
+
+    const notificationBadge = document.getElementById("notif-badge");
+    const notifItems = document.getElementById("notif-items");
+
+    function getReadIds() {
+      return JSON.parse(localStorage.getItem("readNotifications") || "[]");
+    }
+    function addReadId(id) {
+      const arr = getReadIds();
+      if (!arr.includes(id)) {
+        arr.push(id);
+        localStorage.setItem("readNotifications", JSON.stringify(arr));
+      }
+    }
+
+    socket.emit("register", {
+      userId: adminId,
+      username: adminUsername,
+      isAuthenticated: true,
+    });
+ // Khi có thông báo mới từ server (qua socket)
+      socket.on("newNotification", (notification) => {
+        // Kiểm tra trùng (ví dụ kiểm tra userId và timestamp)
+        const exists = notifications.some(
+          (n) =>
+            n.userId === notification.userId &&
+            new Date(n.timestamp).toISOString() ===
+              new Date(notification.timestamp).toISOString()
+        );
+        if (!exists) {
+          notifications.unshift(notification);
+          updateBadge(); // cập nhật số lượng
+          renderDropdown(); // cập nhật giao diện dropdown
+        }
+      });
+    function renderUserList(userArray) {
+      chatUserList.innerHTML = "<h3 class='mt-2'>User List</h3>";
+      userArray.forEach((userObj) => {
+        if (userObj.userId !== adminId) {
+          const userItem = createUserListItem(userObj);
+          chatUserList.appendChild(userItem);
+        }
+      });
+    }
+    function renderDropdown() {
+      const unreadCount = notifications.filter((n) => !n.read).length;
+      notifHeader.innerText = `${unreadCount} Notifications`;
+      notifItems.innerHTML = notifications
+        .map(
+          (n, i) => `
+    <a href="#" class="dropdown-item ${
+      n.read ? "" : "bg-light"
+    }" data-idx="${i}" data-userid="${n.userId}">
+      <i class="fas fa-envelope mr-2"></i>
+      <strong>${n.username}</strong> Có tin nhắn mới
+      <span class="float-right text-muted text-sm">
+        ${new Date(n.timestamp).toLocaleTimeString()}
+      </span>
+    </a>
+    <div class="dropdown-divider"></div>
+  `
+        )
+        .join("");
+
+      notifItems.querySelectorAll("a.dropdown-item").forEach((el) => {
+        el.onclick = async (e) => {
+          e.preventDefault();
+          const idx = +el.dataset.idx;
+          const userId = el.dataset.userid;
+          if (!notifications[idx].read) {
+            // gọi API
+            await markRead(idx);
+            // và load lại để chắc chắn badge giảm, server đồng bộ
+            await loadNotifications();
+          }
+          // Chuyển tới màn chat tương ứng
+          selectUser(userId, notifications[idx].username);
+        };
+      });
+    }
+
+    function createUserListItem(userObj) {
+      const userItem = document.createElement("div");
+      userItem.classList.add("user-item");
+      userItem.dataset.id = userObj.userId;
+      userItem.innerHTML = `
+<div class="user-info">${userObj.username}</div>
+<button class="hide-btn">Ẩn</button>
+`;
+      if (unreadUsers[userObj.userId]) {
+        userItem.classList.add("new-message");
+      }
+      userItem.querySelector(".user-info").addEventListener("click", () => {
+        selectUser(userObj.userId, userObj.username);
+      });
+      userItem.querySelector(".hide-btn").addEventListener("click", () => {
+        socket.emit("hideChatWithUser", userObj.userId);
+        userItem.remove();
+      });
+      return userItem;
+    }
+
+    socket.on("updateUserList", renderUserList);
+    function selectUser(id, name) {
+      selectedUser = id;
+      chatTitle.innerText = `Chat với ${name}`;
+      chatContainer.innerHTML = "";
+      delete unreadUsers[id];
+      const ui = document.querySelector(`[data-id="${id}"]`);
+      if (ui) ui.classList.remove("new-message");
+      if (messages[id]) renderMessages(id);
+      // Đặt cờ trước khi lấy tin nhắn từ server
+      isReloadingMessages = true;
+      socket.emit("getMessages", id); // Gửi yêu cầu lấy tin nhắn lịch sử
+    }
+
+    socket.on("chatHistory", ({ userId, messages: hist }) => {
+      messages[userId] = hist;
+      if (userId === selectedUser) renderMessages(userId);
+    });
+
+    socket.on("receivePrivateMessage", (data) => {
+      const senderId = data.sender;
+      const senderName =
+        senderId === adminId ? adminUsername : data.senderName || senderId;
+      const chatPartner = senderId === adminId ? selectedUser : senderId;
+
+      if (!messages[chatPartner]) messages[chatPartner] = [];
+      messages[chatPartner].push({
+        senderName,
+        message: data.message,
+        timestamp: Date.now(),
+      });
+
+      if (selectedUser === chatPartner) {
+        displayMessage(senderName, data.message);
+      } else {
+        unreadUsers[chatPartner] = true;
+        document
+          .querySelector(`[data-id="${chatPartner}"]`)
+          ?.classList.add("new-message");
+        addNotification({
+          userId: senderId,
+          username: senderName,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+    });
+
+    async function addNotification(n) {
+      const local = { ...n, read: false, _id: null };
+      notifications.unshift(local);
+      updateBadge();
+      renderNotificationDropdown();
+      try {
+        const resp = await fetch("/v1/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: n.userId,
+            username: n.username,
+            title: "Tin nhắn mới",
+            message: "Bạn có tin nhắn mới từ " + n.username,
+            read: false,
+          }),
+        });
+        const saved = await resp.json();
+        local._id = saved._id;
+      } catch (err) {
+        console.error("Failed to save notification:", err);
+      }
+    }
+
+    function updateBadge() {
+      unreadCount = notifications.filter((x) => !x.read).length;
+      notificationBadge.innerText = unreadCount > 0 ? unreadCount : "";
+    }
+
+    function renderNotificationDropdown() {
+      let html = `<span class="dropdown-item dropdown-header">${unreadCount} Notifications</span><div class="dropdown-divider"></div>`;
+      notifications.forEach((n, i) => {
+        const cls = n.read ? "" : "bg-light";
+        html += `
+    <a href="#" class="dropdown-item ${cls}" data-index="${i}" data-user-id="${n.userId}" data-username="${n.username}">
+      <i class="fas fa-envelope mr-2"></i>
+      <strong>${n.username}</strong> đã gửi tin nhắn mới
+      <span class="float-right text-muted text-sm">${n.timestamp}</span>
+    </a><div class="dropdown-divider"></div>`;
+      });
+      html += `<a href="/notifications" class="dropdown-item dropdown-footer">See All</a>`;
+      notifItems.innerHTML = html;
+
+      // Xử lý khi click vào thông báo
+      notifItems.querySelectorAll("a.dropdown-item").forEach((el) => {
+        const idx = parseInt(el.dataset.index, 10);
+        const note = notifications[idx];
+        el.addEventListener("click", async (e) => {
+          e.preventDefault();
+
+          // Đánh dấu thông báo là đã đọc
+          if (!note.read) {
+            try {
+              await fetch(`/v1/notifications/${note._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ read: true }),
+              });
+              note.read = true;
+              addReadId(note._id); // Lưu lại ID thông báo đã đọc
+              updateBadge();
+              renderNotificationDropdown();
+            } catch (err) {
+              console.error("Failed to mark as read", err);
+            }
+          }
+
+          // Chuyển hướng tới màn chat của user
+          window.location.href = `/admin/chat?userId=${el.dataset.userId}&username=${el.dataset.username}`;
+
+          // Tiến hành chọn người dùng trong chat
+          selectUser(el.dataset.userId, el.dataset.username);
+        });
+      });
+    }
+
+    async function loadNotifications() {
+      try {
+        const resp = await fetch("/v1/notifications");
+        const notes = await resp.json();
+        console.log("Dữ liệu từ API /v1/notifications:", notes);
+        const readIds = getReadIds();
+        notifications = notes.map((n) => {
+          let formattedTime = "Không xác định";
+          if (n.createdAt && !isNaN(new Date(n.createdAt))) {
+            formattedTime = new Date(n.createdAt).toLocaleString("vi-VN");
+          }
+
+          return {
+            userId: n.userId,
+            username: n.username,
+            timestamp: formattedTime,
+            read: n.read || readIds.includes(n._id),
+            _id: n._id,
+          };
+        });
+        updateBadge();
+        renderNotificationDropdown();
+      } catch (err) {
+        console.error("Load notifications failed", err);
+      }
+    }
+
+    function sendMessage() {
+      if (!selectedUser) return alert("Chọn một user để nhắn tin!");
+      const msg = messageInput.value.trim();
+      if (!msg) return;
+      socket.emit("sendPrivateMessage", {
+        sender: adminId,
+        receiver: selectedUser,
+        message: msg,
+      });
+      messages[selectedUser] = messages[selectedUser] || [];
+      messages[selectedUser].push({
+        senderName: adminUsername,
+        message: msg,
+        timestamp: Date.now(),
+      });
+      displayMessage(adminUsername, msg);
+      messageInput.value = "";
+    }
+
+    function displayMessage(senderName, message) {
+      const d = document.createElement("div");
+      d.classList.add("message");
+      d.innerHTML = `<strong>${senderName}:</strong> ${message}`;
+      chatContainer.appendChild(d);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function renderMessages(uid) {
+      chatContainer.innerHTML = "";
+      messages[uid].forEach((m) => displayMessage(m.senderName, m.message));
+    }
+
+    loadNotifications();
+  </script>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    window.__ADMIN_ID__ = "<%= adminId %>";
+    window.__ADMIN_NAME__ = "<%= adminName %>";
+  </script>
+  <script src="../public/global-notification.js"></script>
+</body>
+</html>
